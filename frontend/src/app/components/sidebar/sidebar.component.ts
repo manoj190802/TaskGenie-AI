@@ -11,7 +11,6 @@ export class SidebarComponent {
   navItems = [
     { path: '/dashboard', icon: '📊', label: 'Dashboard' },
     { path: '/projects', icon: '🗂️', label: 'Projects' },
-    { path: '/tasks', icon: '✅', label: 'Tasks' },
     { path: '/developers', icon: '👨‍💻', label: 'Developers' },
     { path: '/assignments', icon: '🔗', label: 'Assignments' },
     { path: '/reports', icon: '📈', label: 'Reports' },
