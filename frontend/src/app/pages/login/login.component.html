@@ -1,0 +1,78 @@
+<div class="login-page">
+  <div class="login-bg">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+  </div>
+
+  <div class="login-card">
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-logo">⚡</div>
+      <h1 class="brand-name gradient-text">TaskGenie AI</h1>
+      <p class="brand-tagline">AI-Powered Task Assignment System</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="tab" [class.active]="!isRegister" (click)="isRegister && toggle()">Sign In</button>
+      <button class="tab" [class.active]="isRegister" (click)="!isRegister && toggle()">Register</button>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form">
+      <div class="form-group" *ngIf="isRegister">
+        <label class="form-label">Full Name</label>
+        <input class="form-control" formControlName="name" type="text" placeholder="John Doe" />
+        <span class="field-error" *ngIf="form.get('name')?.touched && form.get('name')?.invalid">
+          Name is required (min 2 chars)
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input class="form-control" formControlName="email" type="email" placeholder="admin@taskgenie.ai" />
+        <span class="field-error" *ngIf="form.get('email')?.touched && form.get('email')?.invalid">
+          Valid email is required
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-control" formControlName="password" type="password" placeholder="••••••••" />
+        <span class="field-error" *ngIf="form.get('password')?.touched && form.get('password')?.invalid">
+          Password must be at least 6 characters
+        </span>
+      </div>
+
+      <div class="form-group" *ngIf="isRegister">
+        <label class="form-label">Role</label>
+        <select class="form-control" formControlName="role">
+          <option value="ProjectManager">Project Manager</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+
+      <div class="error-msg" *ngIf="error">{{ error }}</div>
+
+      <button type="submit" class="btn btn-primary btn-lg w-full" [disabled]="loading">
+        <span *ngIf="!loading">{{ isRegister ? '🚀 Create Account' : '🔐 Sign In' }}</span>
+        <span *ngIf="loading" class="loading-dots">
+          <span></span><span></span><span></span>
+        </span>
+      </button>
+    </form>
+
+    <!-- Default credentials hint -->
+    <div class="hint-box" *ngIf="!isRegister">
+      <strong>Default Admin:</strong> admin&#64;taskgenie.ai / Admin&#64;123
+    </div>
+
+    <!-- Features -->
+    <div class="features">
+      <div class="feature-item" *ngFor="let f of ['🤖 AI Analysis', '📄 Doc Upload', '🎯 Smart Match', '📊 Reports']">
+        {{ f }}
+      </div>
+    </div>
+  </div>
+</div>

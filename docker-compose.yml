@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7
+    container_name: taskgenie-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: taskgenie
+
+  # Python AI Service
+  ai-service:
+    build: ./ai-service
+    container_name: taskgenie-ai
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MONGODB_URI=mongodb://mongodb:27017
+      - CORS_ORIGINS=http://localhost:4200,http://localhost:5000
+    depends_on:
+      - mongodb
+
+  # .NET Web API
+  backend:
+    build: ./backend/TaskGenieAPI
+    container_name: taskgenie-api
+    ports:
+      - "5000:5000"
+    environment:
+      - MongoDbSettings__ConnectionString=mongodb://mongodb:27017
+      - MongoDbSettings__DatabaseName=taskgenie
+      - PythonAIService__BaseUrl=http://ai-service:8000
+    depends_on:
+      - mongodb
+      - ai-service
+
+volumes:
+  mongodb_data:

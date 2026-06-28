@@ -1,0 +1,36 @@
+<nav class="sidebar">
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="brand-logo">⚡</div>
+    <div>
+      <div class="brand-name">TaskGenie</div>
+      <div class="brand-subtitle">AI Task Manager</div>
+    </div>
+  </div>
+
+  <!-- Nav Items -->
+  <div class="sidebar-nav">
+    <a
+      *ngFor="let item of navItems"
+      [routerLink]="item.path"
+      class="nav-item"
+      [class.active]="isActive(item.path)"
+    >
+      <span class="nav-icon">{{ item.icon }}</span>
+      <span class="nav-label">{{ item.label }}</span>
+      <span class="active-indicator"></span>
+    </a>
+  </div>
+
+  <!-- User Profile -->
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="avatar">{{ (authService.getCurrentUser()?.name || 'U')[0] }}</div>
+      <div class="user-details">
+        <div class="user-name">{{ authService.getCurrentUser()?.name }}</div>
+        <div class="user-role">{{ authService.getCurrentUser()?.role }}</div>
+      </div>
+    </div>
+    <button class="logout-btn" (click)="logout()" title="Logout">⏏</button>
+  </div>
+</nav>

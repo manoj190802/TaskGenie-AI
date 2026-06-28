@@ -11,7 +11,12 @@ from models.schemas import AnalyzeRequirementsResponse, AnalyzedTask, TaskCatego
 
 logger = logging.getLogger(__name__)
 
-client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+client = None
+if OPENAI_API_KEY and OPENAI_API_KEY != "your_openai_api_key_here":
+    try:
+        client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+    except Exception as init_err:
+        logger.error(f"Failed to initialize OpenAI client: {init_err}")
 
 SYSTEM_PROMPT = """You are an expert software project analyst and technical architect.
 Your job is to analyze software project requirement documents and extract structured task information.
@@ -63,8 +68,8 @@ async def analyze_requirements(text: str, project_name: str = "Unnamed Project")
     Send requirements text to OpenAI and get back structured task analysis.
     Falls back to rule-based analysis if OpenAI is unavailable.
     """
-    if not OPENAI_API_KEY or OPENAI_API_KEY == "your_openai_api_key_here":
-        logger.warning("No OpenAI API key configured, using rule-based fallback")
+    if not client:
+        logger.warning("OpenAI client is not initialized, using rule-based fallback")
         return _rule_based_analysis(text, project_name)
 
     try:

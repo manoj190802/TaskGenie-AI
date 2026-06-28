@@ -1,0 +1,170 @@
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Reports & Analytics</h2>
+    <p class="page-subtitle">Comprehensive insights into task assignments and team performance</p>
+  </div>
+  <button class="btn btn-secondary" (click)="exportCSV()">📥 Export CSV</button>
+</div>
+
+<div *ngIf="loading" class="loading-spinner"><div class="spinner"></div></div>
+
+<div *ngIf="!loading">
+  <!-- KPI Summary Row -->
+  <div class="kpi-grid mb-3">
+    <div class="kpi-card" style="--gradient: linear-gradient(90deg, #6c63ff, #5a52d5)">
+      <div class="kpi-icon" style="background:rgba(108,99,255,0.15);color:var(--primary)">🗂️</div>
+      <div class="kpi-value">{{ dashStats.totalProjects }}</div>
+      <div class="kpi-label">Total Projects</div>
+    </div>
+    <div class="kpi-card" style="--gradient: linear-gradient(90deg, #51cf66, #40c057)">
+      <div class="kpi-icon" style="background:rgba(81,207,102,0.15);color:var(--success)">✅</div>
+      <div class="kpi-value">{{ dashStats.completedTasks }}</div>
+      <div class="kpi-label">Completed Tasks</div>
+    </div>
+    <div class="kpi-card" style="--gradient: linear-gradient(90deg, #00d9a6, #00b38a)">
+      <div class="kpi-icon" style="background:rgba(0,217,166,0.15);color:var(--secondary)">🤖</div>
+      <div class="kpi-value">{{ aiStats.aiAdoptionRate | number:'1.0-0' }}%</div>
+      <div class="kpi-label">AI Adoption Rate</div>
+    </div>
+    <div class="kpi-card" style="--gradient: linear-gradient(90deg, #4dabf7, #228be6)">
+      <div class="kpi-icon" style="background:rgba(77,171,247,0.15);color:var(--info)">⏱️</div>
+      <div class="kpi-value">{{ taskSummary.totalEstimatedHours }}</div>
+      <div class="kpi-label">Total Est. Hours</div>
+    </div>
+  </div>
+
+  <div class="reports-grid">
+    <!-- Task Status Chart -->
+    <div class="card">
+      <div class="card-header"><h3>Tasks by Status</h3></div>
+      <div class="bar-chart">
+        <div class="bar-item" *ngFor="let e of getStatusEntries(taskSummary.byStatus)">
+          <div class="bar-label">{{ e.key }}</div>
+          <div class="bar-track">
+            <div class="bar-fill status-bar" [style.width.%]="(e.val / getMax(getStatusEntries(taskSummary.byStatus))) * 100">
+              <span class="bar-value">{{ e.val }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task Category Chart -->
+    <div class="card">
+      <div class="card-header"><h3>Tasks by Category</h3></div>
+      <div class="bar-chart">
+        <div class="bar-item" *ngFor="let e of getCatEntries(taskSummary.byCategory)">
+          <div class="bar-label">{{ e.key }}</div>
+          <div class="bar-track">
+            <div class="bar-fill cat-bar" [style.width.%]="(e.val / getMax(getCatEntries(taskSummary.byCategory))) * 100">
+              <span class="bar-value">{{ e.val }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Stats -->
+    <div class="card">
+      <div class="card-header"><h3>AI Performance Stats</h3></div>
+      <div class="ai-stat-grid">
+        <div class="ai-stat">
+          <div class="ai-stat-value gradient-text">{{ aiStats.aiAssistedCount }}</div>
+          <div class="ai-stat-label">AI Assisted</div>
+        </div>
+        <div class="ai-stat">
+          <div class="ai-stat-value">{{ aiStats.manualCount }}</div>
+          <div class="ai-stat-label">Manual</div>
+        </div>
+        <div class="ai-stat">
+          <div class="ai-stat-value" style="color:var(--secondary)">
+            {{ (aiStats.averageAiScore * 100) | number:'1.0-1' }}%
+          </div>
+          <div class="ai-stat-label">Avg Match Score</div>
+        </div>
+      </div>
+
+      <div class="adoption-visual">
+        <div class="adoption-label">
+          <span>AI Adoption</span>
+          <span class="fw-bold gradient-text">{{ aiStats.aiAdoptionRate | number:'1.0-1' }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="aiStats.aiAdoptionRate"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Developer Workload -->
+    <div class="card">
+      <div class="card-header"><h3>Developer Workload Summary</h3></div>
+      <div *ngIf="workloads.length === 0" class="empty-state" style="padding:2rem"><p>No developers</p></div>
+      <div class="workload-table" *ngIf="workloads.length > 0">
+        <div class="workload-row" *ngFor="let w of workloads">
+          <div class="dev-cell">
+            <div class="avatar" style="width:30px;height:30px;font-size:0.75rem">{{ w.developer.name[0] }}</div>
+            <div>
+              <div class="fw-600" style="font-size:0.875rem">{{ w.developer.name }}</div>
+              <div class="text-muted" style="font-size:0.72rem">{{ w.totalAssignments }} total · {{ w.completedAssignments }} done</div>
+            </div>
+          </div>
+          <div class="workload-right">
+            <div class="progress-bar" style="width:100px">
+              <div class="progress-fill"
+                   [style.width.%]="w.developer.currentWorkload"
+                   [style.background]="getWorkloadColor(w.developer.currentWorkload)">
+              </div>
+            </div>
+            <span class="fw-bold" [style.color]="getWorkloadColor(w.developer.currentWorkload)">
+              {{ w.developer.currentWorkload }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assignment History Table -->
+  <div class="card mt-3">
+    <div class="card-header">
+      <h3>Assignment History ({{ assignmentHistory.total }} total)</h3>
+      <button class="btn btn-secondary btn-sm" (click)="exportCSV()">📥 Export CSV</button>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Task</th><th>Project</th><th>Developer</th>
+            <th>Assigned By</th><th>Date</th><th>Status</th><th>AI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of assignmentHistory.data">
+            <td class="fw-600">{{ a.taskTitle }}</td>
+            <td class="text-muted">{{ a.projectName }}</td>
+            <td>
+              <div class="dev-cell">
+                <div class="avatar" style="width:24px;height:24px;font-size:0.7rem">{{ a.developerName[0] }}</div>
+                {{ a.developerName }}
+              </div>
+            </td>
+            <td class="text-muted">{{ a.assignedByName }}</td>
+            <td class="text-muted">{{ a.assignedAt | date:'MMM d, y' }}</td>
+            <td><span class="badge" [ngClass]="getStatusBadge(a.status)">{{ a.status }}</span></td>
+            <td>
+              <span *ngIf="a.aiAssisted" class="badge badge-secondary">🤖 {{ (a.aiScore * 100).toFixed(0) }}%</span>
+              <span *ngIf="!a.aiAssisted" class="text-muted">Manual</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" *ngIf="assignmentHistory.totalPages > 1">
+      <button class="btn btn-secondary btn-sm" *ngFor="let p of pages()"
+        [class.active]="p === page" (click)="loadPage(p)">{{ p }}</button>
+    </div>
+  </div>
+</div>

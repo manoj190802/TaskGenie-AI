@@ -1,0 +1,44 @@
+.dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.dev-card { display: flex; flex-direction: column; gap: 1rem; }
+
+.dev-card-header { display: flex; align-items: center; gap: 1rem; }
+
+.dev-info { flex: 1; min-width: 0; }
+.dev-name { font-weight: 700; font-size: 1rem; }
+.dev-email { font-size: 0.8rem; color: var(--text-muted); }
+
+.dev-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.meta-chip {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.workload-section { }
+
+.skills-section { }
+
+.dev-bio { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+
+.dev-actions { display: flex; gap: 0.5rem; margin-top: auto; }
+
+.info-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.error-msg {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}

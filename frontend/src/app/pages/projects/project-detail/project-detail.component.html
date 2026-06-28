@@ -1,0 +1,178 @@
+<div *ngIf="loading" class="loading-spinner"><div class="spinner"></div></div>
+
+<div *ngIf="!loading && error" class="empty-state">
+  <div class="icon">⚠️</div>
+  <p>{{ error }}</p>
+</div>
+
+<div *ngIf="!loading && project">
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="back-link" (click)="router.navigate(['/projects'])">← Back to Projects</div>
+      <h2 class="page-title">{{ project.name }}</h2>
+      <p class="page-subtitle">{{ project.description }}</p>
+    </div>
+    <div class="flex gap-1">
+      <span class="badge" [ngClass]="getStatusBadge(project.status)">{{ project.status }}</span>
+      <span class="badge badge-primary" *ngIf="project.aiAnalyzed">🤖 AI Analyzed</span>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Left Panel: Upload + Analysis -->
+    <div class="left-panel">
+
+      <!-- ── Requirements Upload Card ──────────────────────────────────── -->
+      <div class="card mb-2">
+        <div class="card-header">
+          <h3>📄 Requirements Document</h3>
+          <span class="format-pills">
+            <span class="format-pill pdf">PDF</span>
+            <span class="format-pill doc">DOC</span>
+            <span class="format-pill docx">DOCX</span>
+            <span class="format-pill txt">TXT</span>
+          </span>
+        </div>
+
+        <!-- Drop Zone -->
+        <div
+          class="drop-zone"
+          [class.drag-over]="isDragOver"
+          [class.has-file]="selectedFile"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onDrop($event)"
+        >
+          <!-- Hidden real file input -->
+          <input id="fileInput" type="file" accept=".pdf,.docx,.doc,.txt" hidden (change)="onFileSelected($event)" />
+
+          <!-- No file selected state -->
+          <div *ngIf="!selectedFile" class="drop-content">
+            <div class="drop-icon" [class.drag-pulse]="isDragOver">
+              {{ isDragOver ? '📂' : '📁' }}
+            </div>
+            <div class="drop-title">
+              {{ isDragOver ? 'Release to upload' : 'Drag & drop your file here' }}
+            </div>
+            <div class="drop-subtitle" *ngIf="!isDragOver">or</div>
+            <label for="fileInput" class="btn btn-secondary btn-sm browse-btn" *ngIf="!isDragOver">
+              Browse File
+            </label>
+            <div class="drop-hint">PDF, DOCX, DOC, TXT · Max 10 MB</div>
+          </div>
+
+          <!-- File selected state -->
+          <div *ngIf="selectedFile" class="file-preview">
+            <div class="file-preview-icon">{{ getFileIcon() }}</div>
+            <div class="file-preview-info">
+              <div class="file-preview-name">{{ selectedFile.name }}</div>
+              <div class="file-preview-size">{{ getFileSizeLabel() }}</div>
+            </div>
+            <button class="file-clear-btn" (click)="clearFile(); $event.stopPropagation()" title="Remove file">✕</button>
+          </div>
+        </div>
+
+        <!-- Upload Error/Hint -->
+        <div class="msg-box error-b" *ngIf="uploadMsg && uploadMsg.startsWith('❌')">{{ uploadMsg }}</div>
+
+        <!-- Currently uploaded file -->
+        <div *ngIf="project.requirementsFileName && !selectedFile" class="current-file-badge">
+          <span class="current-file-icon">📎</span>
+          <span class="current-file-name">{{ project.requirementsFileName }}</span>
+          <span class="current-file-label">Current</span>
+        </div>
+
+        <!-- Upload Button -->
+        <button
+          class="btn btn-secondary w-btn"
+          (click)="uploadRequirements()"
+          [disabled]="uploading || !selectedFile"
+        >
+          <span *ngIf="!uploading">📤 Upload &amp; Extract Text</span>
+          <span *ngIf="uploading" class="upload-progress">
+            <span class="upload-spinner"></span> Extracting text...
+          </span>
+        </button>
+
+        <div class="msg-box success" *ngIf="uploadMsg && uploadMsg.startsWith('✅')">{{ uploadMsg }}</div>
+      </div>
+
+      <!-- ── AI Analysis Card ──────────────────────────────────────────── -->
+      <div class="card">
+        <div class="card-header">
+          <h3>🤖 AI Analysis</h3>
+        </div>
+
+        <div class="ai-info">
+          <p>Extract tasks automatically from your requirements document using AI analysis.</p>
+          <ul class="ai-features">
+            <li>✅ Task classification (Frontend / Backend / Full Stack / Testing)</li>
+            <li>✅ Skills detection and estimation</li>
+            <li>✅ Priority and complexity scoring</li>
+            <li>✅ Hours estimation</li>
+          </ul>
+        </div>
+
+        <button class="btn btn-primary w-btn"
+          (click)="analyzeRequirements()"
+          [disabled]="analyzing || !project.requirementsText">
+          <span *ngIf="!analyzing">🚀 Run AI Analysis</span>
+          <span *ngIf="analyzing" class="upload-progress">
+            <span class="upload-spinner"></span> Analyzing with AI...
+          </span>
+        </button>
+
+        <div *ngIf="!project.requirementsText" class="text-muted mt-1" style="font-size:0.8rem">
+          Upload a requirements file first to enable AI analysis.
+        </div>
+
+        <div class="msg-box success" *ngIf="analyzeMsg && analyzeMsg.startsWith('✅')">{{ analyzeMsg }}</div>
+        <div class="msg-box error-b" *ngIf="analyzeMsg && analyzeMsg.startsWith('❌')">{{ analyzeMsg }}</div>
+
+        <!-- Analysis summary -->
+        <div class="analysis-summary" *ngIf="project.projectSummary">
+          <p>{{ project.projectSummary }}</p>
+          <div class="tech-stack" *ngIf="project.techStack?.length > 0">
+            <span class="chip" *ngFor="let t of project.techStack">{{ t }}</span>
+          </div>
+          <div class="text-muted mt-1" style="font-size:0.8rem">
+            Total estimated: <strong style="color:var(--text-primary)">{{ project.totalEstimatedHours }}h</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tasks List -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Tasks ({{ tasks.length }})</h3>
+        <div class="flex gap-1">
+          <a routerLink="/tasks" [queryParams]="{projectId: project.id}" class="btn btn-secondary btn-sm">View All</a>
+        </div>
+      </div>
+
+      <div *ngIf="tasks.length === 0" class="empty-state" style="padding:2rem">
+        <div class="icon">✅</div>
+        <p>No tasks yet. Run AI Analysis to generate tasks automatically.</p>
+      </div>
+
+      <div class="tasks-list" *ngIf="tasks.length > 0">
+        <div class="task-row" *ngFor="let task of tasks" (click)="viewTask(task.id)">
+          <div class="task-main">
+            <div class="task-title">{{ task.title }}</div>
+            <div class="task-badges">
+              <span class="badge" [ngClass]="getCatBadge(task.category)">{{ task.category }}</span>
+              <span class="badge" [ngClass]="getPriorityBadge(task.priority)">{{ task.priority }}</span>
+              <span class="badge" [ngClass]="getStatusBadge(task.status)">{{ task.status }}</span>
+            </div>
+          </div>
+          <div class="task-meta">
+            <span>⏱️ {{ task.estimatedHours }}h</span>
+            <span *ngIf="task.assignedDeveloperName">👤 {{ task.assignedDeveloperName }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

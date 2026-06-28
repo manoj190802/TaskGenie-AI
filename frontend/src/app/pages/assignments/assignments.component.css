@@ -1,0 +1,70 @@
+.filters-bar { display: flex; gap: 1rem; padding: 1rem 1.25rem; flex-wrap: wrap; }
+.filter-group { display: flex; flex-direction: column; gap: 0.35rem; min-width: 160px; }
+
+.assignments-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.assignment-card { padding: 0; overflow: hidden; }
+
+.assignment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: var(--transition);
+  gap: 1rem;
+}
+.assignment-header:hover { background: rgba(108, 99, 255, 0.04); }
+
+.assignment-main { display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; }
+.task-name { font-size: 0.9rem; }
+.project-name { font-size: 0.75rem; margin-top: 2px; }
+
+.ai-chip {
+  background: rgba(108, 99, 255, 0.12);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.assignment-info { display: flex; align-items: center; gap: 1rem; flex-shrink: 0; }
+.dev-cell { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; }
+.expand-icon { color: var(--text-muted); font-size: 0.7rem; }
+
+.assignment-detail {
+  padding: 1.25rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+.detail-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+
+/* Timeline */
+.history-section { margin-bottom: 1.25rem; }
+.timeline { position: relative; padding-left: 1.5rem; }
+.timeline::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline-item { position: relative; margin-bottom: 1rem; }
+.timeline-dot { position: absolute; left: -1.35rem; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); border: 2px solid var(--bg-surface); }
+.timeline-content { }
+.timeline-action { font-size: 0.875rem; }
+.timeline-detail { margin: 0.15rem 0; }
+
+.assignment-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.error-msg {
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}

@@ -1,0 +1,18 @@
+<header class="app-header">
+  <div class="header-left">
+    <h1 class="page-title-header">{{ getPageTitle() }}</h1>
+  </div>
+  <div class="header-right">
+    <div class="ai-badge">
+      <span class="ai-dot"></span>
+      AI Powered
+    </div>
+    <div class="header-user">
+      <div class="avatar">{{ (authService.getCurrentUser()?.name || 'U')[0] }}</div>
+      <div>
+        <div class="user-name">{{ authService.getCurrentUser()?.name }}</div>
+        <div class="user-role">{{ authService.getCurrentUser()?.role }}</div>
+      </div>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,392 @@
+<!-- Page Header -->
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Projects</h2>
+    <p class="page-subtitle">AI-powered requirement analysis and smart task assignment</p>
+  </div>
+  <button class="btn btn-primary" (click)="openWizard()">
+    <span class="btn-icon">+</span> New Project
+  </button>
+</div>
+
+<!-- Loading -->
+<div *ngIf="loading" class="loading-spinner"><div class="spinner"></div></div>
+
+<!-- Project List -->
+<div *ngIf="!loading">
+  <!-- Empty State -->
+  <div *ngIf="projects.length === 0" class="empty-state card">
+    <div class="icon">🗂️</div>
+    <h3>No projects yet</h3>
+    <p>Create your first project, upload requirements, and let AI assign developers automatically.</p>
+    <button class="btn btn-primary mt-2" (click)="openWizard()">
+      🚀 Create First Project
+    </button>
+  </div>
+
+  <!-- Projects Grid -->
+  <div class="projects-grid" *ngIf="projects.length > 0">
+    <div class="project-card card" *ngFor="let p of projects" [routerLink]="['/projects', p.project.id]">
+      <!-- Priority ribbon -->
+      <div class="priority-ribbon" [class]="'ribbon-' + (p.project.priority || 'Medium').toLowerCase()">
+        {{ p.project.priority || 'Medium' }}
+      </div>
+
+      <div class="card-header">
+        <div>
+          <h4 class="project-name">{{ p.project.name }}</h4>
+          <p class="project-desc">{{ p.project.description || 'No description' }}</p>
+          <p class="project-client" *ngIf="p.project.clientName">👤 {{ p.project.clientName }}</p>
+        </div>
+        <span class="badge" [ngClass]="getStatusBadge(p.project.status)">{{ p.project.status }}</span>
+      </div>
+
+      <div class="project-meta">
+        <div class="meta-item">
+          <span class="meta-icon">📋</span>
+          <span>{{ p.taskCounts.total }} tasks</span>
+        </div>
+        <div class="meta-item" *ngIf="p.project.aiAnalyzed">
+          <span class="meta-icon">🤖</span>
+          <span>AI Analyzed</span>
+        </div>
+        <div class="meta-item" *ngIf="p.project.totalEstimatedHours">
+          <span class="meta-icon">⏱️</span>
+          <span>{{ p.project.totalEstimatedHours }}h est.</span>
+        </div>
+        <div class="meta-item" *ngIf="p.project.dueDate">
+          <span class="meta-icon">📅</span>
+          <span>{{ p.project.dueDate | date:'MMM d' }}</span>
+        </div>
+      </div>
+
+      <div class="task-progress" *ngIf="p.taskCounts.total > 0">
+        <div class="task-breakdown">
+          <span class="badge badge-warning">{{ p.taskCounts.pending }} Pending</span>
+          <span class="badge badge-info">{{ p.taskCounts.assigned }} Assigned</span>
+          <span class="badge badge-success">{{ p.taskCounts.completed }} Done</span>
+        </div>
+        <div class="progress-bar mt-1">
+          <div class="progress-fill"
+               [style.width.%]="p.taskCounts.total > 0 ? (p.taskCounts.completed / p.taskCounts.total * 100) : 0">
+          </div>
+        </div>
+      </div>
+
+      <div class="project-footer">
+        <span class="text-muted" style="font-size:0.75rem">
+          Created {{ p.project.createdAt | date:'MMM d, yyyy' }}
+        </span>
+        <div class="tech-tags" *ngIf="p.project.techStack?.length > 0">
+          <span class="chip" *ngFor="let t of p.project.techStack?.slice(0, 3)">{{ t }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<!-- Wizard Modal -->
+<!-- ══════════════════════════════════════════════════════════════════════════ -->
+<div class="wizard-overlay" *ngIf="showWizard" (click)="closeWizard()">
+  <div class="wizard-modal" (click)="$event.stopPropagation()">
+
+    <!-- Wizard Header -->
+    <div class="wizard-header">
+      <div class="wizard-title-row">
+        <h3 class="wizard-title">🚀 Create New Project</h3>
+        <button class="wizard-close" (click)="closeWizard()" *ngIf="step !== 'analyzing'">✕</button>
+      </div>
+      <!-- Step indicator -->
+      <div class="step-track">
+        <div class="step-item" [class.active]="wizardStepIndex >= 1" [class.done]="wizardStepIndex > 1">
+          <div class="step-dot">{{ wizardStepIndex > 1 ? '✓' : '1' }}</div>
+          <span>Details</span>
+        </div>
+        <div class="step-line" [class.done]="wizardStepIndex > 1"></div>
+        <div class="step-item" [class.active]="wizardStepIndex >= 2" [class.done]="wizardStepIndex > 2">
+          <div class="step-dot">{{ wizardStepIndex > 2 ? '✓' : '2' }}</div>
+          <span>Upload</span>
+        </div>
+        <div class="step-line" [class.done]="wizardStepIndex > 2"></div>
+        <div class="step-item" [class.active]="wizardStepIndex >= 3" [class.done]="wizardStepIndex > 3">
+          <div class="step-dot">{{ wizardStepIndex > 3 ? '✓' : '3' }}</div>
+          <span>AI Analyze</span>
+        </div>
+        <div class="step-line" [class.done]="wizardStepIndex > 3"></div>
+        <div class="step-item" [class.active]="wizardStepIndex >= 4">
+          <div class="step-dot">4</div>
+          <span>Results</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 1: Project Details ──────────────────────────────────────── -->
+    <div class="wizard-body" *ngIf="step === 'details'">
+      <div class="form-grid">
+        <div class="form-group span-2">
+          <label class="form-label">Project Name <span class="required">*</span></label>
+          <input class="form-control" [(ngModel)]="form.name"
+            placeholder="e.g. E-commerce Platform, Inventory System…" />
+        </div>
+
+        <div class="form-group span-2">
+          <label class="form-label">Description</label>
+          <textarea class="form-control textarea-sm" [(ngModel)]="form.description"
+            placeholder="Brief overview of what this project aims to achieve…" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Priority</label>
+          <div class="priority-selector">
+            <button class="priority-btn" [class.active]="form.priority === 'Low'"
+              (click)="form.priority = 'Low'">🟢 Low</button>
+            <button class="priority-btn" [class.active]="form.priority === 'Medium'"
+              (click)="form.priority = 'Medium'">🟡 Medium</button>
+            <button class="priority-btn" [class.active]="form.priority === 'High'"
+              (click)="form.priority = 'High'">🔴 High</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Deadline</label>
+          <input class="form-control" type="date" [(ngModel)]="form.dueDate" />
+        </div>
+
+        <div class="form-group span-2">
+          <label class="form-label">Client Name <span class="optional">(Optional)</span></label>
+          <input class="form-control" [(ngModel)]="form.clientName"
+            placeholder="e.g. Acme Corp, Internal Team…" />
+        </div>
+      </div>
+
+      <div class="error-msg" *ngIf="wizardError">{{ wizardError }}</div>
+
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" (click)="closeWizard()">Cancel</button>
+        <button class="btn btn-primary" (click)="nextStep()">
+          Next: Upload Document →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: File Upload ──────────────────────────────────────────── -->
+    <div class="wizard-body" *ngIf="step === 'upload'">
+      <p class="upload-intro">
+        Upload your requirements document — AI will extract tasks, classify them, and recommend the best developer for each.
+      </p>
+
+      <!-- Format pills -->
+      <div class="format-row">
+        <span class="format-pill pdf">PDF</span>
+        <span class="format-pill doc">DOC</span>
+        <span class="format-pill docx">DOCX</span>
+        <span class="format-pill txt">TXT</span>
+        <span class="format-hint">Max 10 MB</span>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone"
+        [class.drag-over]="isDragOver"
+        [class.has-file]="selectedFile"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+
+        <input id="wizardFileInput" type="file" accept=".pdf,.docx,.doc,.txt" hidden (change)="onFileSelected($event)" />
+
+        <!-- No file -->
+        <div *ngIf="!selectedFile" class="drop-content">
+          <div class="drop-icon" [class.drag-pulse]="isDragOver">
+            {{ isDragOver ? '📂' : '📁' }}
+          </div>
+          <div class="drop-title">{{ isDragOver ? 'Release to upload' : 'Drag & drop your requirements file' }}</div>
+          <div class="drop-subtitle" *ngIf="!isDragOver">or</div>
+          <label for="wizardFileInput" class="btn btn-secondary btn-sm" *ngIf="!isDragOver">Browse File</label>
+          <div class="drop-hint">Requirements spec, PRD, feature doc…</div>
+        </div>
+
+        <!-- File selected -->
+        <div *ngIf="selectedFile" class="file-preview">
+          <div class="file-preview-icon">{{ getFileIcon() }}</div>
+          <div class="file-preview-info">
+            <div class="file-preview-name">{{ selectedFile.name }}</div>
+            <div class="file-preview-size">{{ getFileSizeLabel() }}</div>
+          </div>
+          <button class="file-clear-btn" (click)="clearFile(); $event.stopPropagation()" title="Remove">✕</button>
+        </div>
+      </div>
+
+      <div class="file-error" *ngIf="fileError">{{ fileError }}</div>
+
+      <div class="skip-hint" *ngIf="!selectedFile">
+        <span>💡 You can skip file upload and add requirements later from the project page.</span>
+      </div>
+
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" (click)="backStep()">← Back</button>
+        <button class="btn btn-primary" (click)="submitWizard()">
+          {{ selectedFile ? '🤖 Create & Analyze' : '✅ Create Project' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Analyzing ────────────────────────────────────────────── -->
+    <div class="wizard-body analyzing-body" *ngIf="step === 'analyzing'">
+      <div class="analyzing-anim">
+        <div class="ai-orb">
+          <div class="orb-ring ring-1"></div>
+          <div class="orb-ring ring-2"></div>
+          <div class="orb-ring ring-3"></div>
+          <div class="orb-core">🤖</div>
+        </div>
+      </div>
+      <h3 class="analyzing-title">AI is analyzing your project…</h3>
+      <div class="analyzing-steps">
+        <div class="anl-step">
+          <span class="anl-dot done"></span>Creating project in database
+        </div>
+        <div class="anl-step">
+          <span class="anl-dot" [class.done]="!!selectedFile"></span>
+          {{ selectedFile ? 'Extracting text from document' : 'No file — skipping extraction' }}
+        </div>
+        <div class="anl-step">
+          <span class="anl-dot pulse"></span>Running AI requirement analysis
+        </div>
+        <div class="anl-step">
+          <span class="anl-dot"></span>Scoring developer recommendations
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Results ──────────────────────────────────────────────── -->
+    <div class="wizard-body results-body" *ngIf="step === 'results' && wizardResult">
+
+      <!-- Summary -->
+      <div class="result-summary">
+        <div class="result-badge success">✅ Project Created</div>
+        <div class="result-badge" [class.success]="wizardResult.uploadStatus === 'success'"
+             [class.warn]="wizardResult.uploadStatus === 'skipped'"
+             [class.error-b]="wizardResult.uploadStatus === 'error'">
+          {{ wizardResult.uploadStatus === 'success' ? '📄 ' + wizardResult.wordCount + ' words extracted'
+           : wizardResult.uploadStatus === 'error' ? '⚠️ Upload failed'
+           : '⏭️ No file uploaded' }}
+        </div>
+        <div class="result-badge" [class.success]="wizardResult.analyzeStatus === 'success'"
+             [class.warn]="wizardResult.analyzeStatus === 'skipped'"
+             [class.error-b]="wizardResult.analyzeStatus === 'error'">
+          {{ wizardResult.analyzeStatus === 'success' ? '🤖 ' + wizardResult.tasks?.length + ' tasks generated'
+           : wizardResult.analyzeStatus === 'error' ? '⚠️ Analysis failed'
+           : '⏭️ No analysis' }}
+        </div>
+      </div>
+
+      <!-- Project info row -->
+      <div class="result-project-info">
+        <strong>{{ wizardResult.project?.name }}</strong>
+        <span class="badge" [ngClass]="getPriorityBadge(wizardResult.project?.priority)">
+          {{ wizardResult.project?.priority }}
+        </span>
+        <span *ngIf="wizardResult.project?.clientName" class="text-muted" style="font-size:0.8rem">
+          · {{ wizardResult.project?.clientName }}
+        </span>
+        <span *ngIf="wizardResult.totalEstimatedHours" class="text-muted" style="font-size:0.8rem">
+          · {{ wizardResult.totalEstimatedHours }}h total
+        </span>
+      </div>
+
+      <!-- Tech stack -->
+      <div class="tech-row" *ngIf="wizardResult.techStack?.length > 0">
+        <span class="chip" *ngFor="let t of wizardResult.techStack">{{ t }}</span>
+      </div>
+
+      <!-- Project summary -->
+      <div class="result-ai-summary" *ngIf="wizardResult.projectSummary">
+        <span class="ai-label">🤖 AI Summary</span>
+        {{ wizardResult.projectSummary }}
+      </div>
+
+      <!-- Error messages -->
+      <div class="error-msg" *ngIf="wizardResult.uploadError">⚠️ {{ wizardResult.uploadError }}</div>
+      <div class="error-msg" *ngIf="wizardResult.analyzeError">⚠️ {{ wizardResult.analyzeError }}</div>
+      <div class="error-msg" *ngIf="wizardError">{{ wizardError }}</div>
+
+      <!-- Tasks + Developer Assignment -->
+      <div class="tasks-section" *ngIf="wizardResult.tasks?.length > 0">
+        <h4 class="tasks-section-title">
+          Generated Tasks
+          <span class="text-muted" style="font-size:0.8rem; font-weight:400">
+            — assign a developer and confirm below
+          </span>
+        </h4>
+
+        <div class="task-assign-card" *ngFor="let task of wizardResult.tasks">
+          <div class="task-assign-header">
+            <div>
+              <div class="task-assign-title">{{ task.title }}</div>
+              <div class="task-assign-badges">
+                <span class="badge" [ngClass]="getCatBadge(task.category)">{{ task.category }}</span>
+                <span class="badge" [ngClass]="getPriorityBadge(task.priority)">{{ task.priority }}</span>
+                <span class="badge badge-muted">⏱️ {{ task.estimatedHours }}h</span>
+              </div>
+              <div class="task-skills" *ngIf="task.skillsRequired?.length > 0">
+                <span class="skill-tag" *ngFor="let s of task.skillsRequired">{{ s }}</span>
+              </div>
+            </div>
+            <div class="assign-status">
+              <div class="assigned-check" *ngIf="isAssigned(task.id)">✅ Assigned</div>
+            </div>
+          </div>
+
+          <!-- Developer Recommendations -->
+          <div class="dev-recommendations" *ngIf="task.aiRecommendations?.length > 0 && !isAssigned(task.id)">
+            <div class="rec-label">🤖 AI Recommendations</div>
+            <div class="rec-list">
+              <div class="rec-item"
+                *ngFor="let rec of task.aiRecommendations.slice(0, 3)"
+                [class.selected]="assigningDeveloperId[task.id] === rec.developerId"
+                (click)="assigningDeveloperId[task.id] = rec.developerId">
+                <div class="rec-rank"></div>
+                <div class="rec-info">
+                  <div class="rec-name">{{ rec.developerName }}</div>
+                  <div class="rec-reason">{{ rec.reason }}</div>
+                  <div class="rec-skills" *ngIf="rec.matchedSkills?.length > 0">
+                    <span class="skill-match" *ngFor="let s of rec.matchedSkills.slice(0, 3)">✅ {{ s }}</span>
+                    <span class="skill-miss" *ngFor="let s of rec.missingSkills.slice(0, 2)">❌ {{ s }}</span>
+                  </div>
+                </div>
+                <div class="rec-score" [style.color]="getScoreColor(rec.score)">
+                  {{ getScorePercent(rec.score) }}%
+                </div>
+              </div>
+            </div>
+
+            <div class="assign-action">
+              <input class="form-control notes-input" [(ngModel)]="assignmentNotes[task.id]"
+                placeholder="Optional notes for the developer…" />
+              <button class="btn btn-primary btn-sm assign-btn"
+                (click)="assignTask(task)"
+                [disabled]="!assigningDeveloperId[task.id] || assigningTaskId === task.id">
+                <span *ngIf="assigningTaskId !== task.id">✅ Confirm Assignment</span>
+                <span *ngIf="assigningTaskId === task.id">Assigning…</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="no-devs-hint" *ngIf="(!task.aiRecommendations || task.aiRecommendations.length === 0) && !isAssigned(task.id)">
+            ℹ️ No developers found. Add developers from the Developers section first.
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="wizard-footer">
+        <button class="btn btn-secondary" (click)="closeWizard()">Close</button>
+        <button class="btn btn-primary" (click)="goToProject()">
+          Open Project Page →
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

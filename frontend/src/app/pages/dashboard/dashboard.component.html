@@ -1,0 +1,151 @@
+<div *ngIf="loading" class="loading-spinner">
+  <div class="spinner"></div>
+</div>
+
+<div *ngIf="!loading">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Welcome back 👋</h2>
+      <p class="page-subtitle">Here's what's happening with your projects today</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/projects" [queryParams]="{new: 'true'}" class="btn btn-primary">+ New Project</a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card" *ngFor="let kpi of kpiCards" [style.--gradient]="kpi.gradient">
+      <div class="kpi-icon" [style.background]="kpi.color + '20'" [style.color]="kpi.color">
+        {{ kpi.icon }}
+      </div>
+      <div class="kpi-value">{{ kpi.value }}</div>
+      <div class="kpi-label">{{ kpi.label }}</div>
+      <div class="kpi-change">{{ kpi.sub }}</div>
+    </div>
+  </div>
+
+  <!-- AI Stats Banner -->
+  <div class="ai-banner card mb-3" *ngIf="aiStats.totalAssignments > 0">
+    <div class="ai-banner-content">
+      <div class="ai-banner-icon">🤖</div>
+      <div>
+        <div class="ai-banner-title">AI-Assisted Assignments</div>
+        <div class="ai-banner-desc">
+          {{ aiStats.aiAssistedCount }} of {{ aiStats.totalAssignments }} assignments used AI recommendations
+          ({{ aiStats.aiAdoptionRate | number:'1.0-1' }}% adoption rate)
+          · Avg score: {{ (aiStats.averageAiScore * 100) | number:'1.0-1' }}%
+        </div>
+      </div>
+    </div>
+    <div class="ai-adoption-bar">
+      <div class="progress-bar">
+        <div class="progress-fill" [style.width.%]="aiStats.aiAdoptionRate"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Recent Assignments -->
+    <div class="card">
+      <div class="card-header">
+        <h3>Recent Assignments</h3>
+        <a routerLink="/assignments" class="btn btn-secondary btn-sm">View All</a>
+      </div>
+
+      <div *ngIf="stats?.recentAssignments?.length === 0" class="empty-state">
+        <div class="icon">📋</div>
+        <p>No assignments yet. Analyze a project to get started.</p>
+      </div>
+
+      <div class="table-container" *ngIf="(stats?.recentAssignments?.length || 0) > 0">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Project</th>
+              <th>Developer</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of stats?.recentAssignments; trackBy: trackByAssignment">
+              <td class="fw-600">{{ a.taskTitle }}</td>
+              <td class="text-muted">{{ a.projectName }}</td>
+              <td>
+                <div class="dev-cell">
+                  <div class="avatar" style="width:28px;height:28px;font-size:0.75rem">
+                    {{ a.developerName[0] }}
+                  </div>
+                  {{ a.developerName }}
+                </div>
+              </td>
+              <td><span class="badge" [ngClass]="getStatusBadge(a.status)">{{ a.status }}</span></td>
+              <td class="text-muted">{{ a.assignedAt | date:'MMM d' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Task Category + Developer Workload -->
+    <div class="side-panels">
+      <!-- Task by Category -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Tasks by Category</h3>
+        </div>
+        <div *ngIf="(stats?.tasksByCategory?.length || 0) === 0" class="empty-state" style="padding:2rem">
+          <p>No tasks yet</p>
+        </div>
+        <div class="category-list" *ngIf="(stats?.tasksByCategory?.length || 0) > 0">
+          <div class="category-item" *ngFor="let cat of stats?.tasksByCategory; trackBy: trackByCategory">
+            <div class="category-info">
+              <span class="badge" [ngClass]="getCategoryBadge(cat.category)">{{ cat.category }}</span>
+              <span class="cat-count">{{ cat.count }}</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill"
+                   [style.width.%]="(stats?.totalTasks || 0) > 0 ? (cat.count / (stats?.totalTasks || 1) * 100) : 0">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Developer Workload -->
+      <div class="card mt-2">
+        <div class="card-header">
+          <h3>Developer Workload</h3>
+          <a routerLink="/developers" class="btn btn-secondary btn-sm">Manage</a>
+        </div>
+        <div *ngIf="workloadData.length === 0" class="empty-state" style="padding:2rem">
+          <p>No developers added yet</p>
+        </div>
+        <div class="workload-list" *ngIf="workloadData.length > 0">
+          <div class="workload-item" *ngFor="let w of workloadData">
+            <div class="dev-cell">
+              <div class="avatar" style="width:32px;height:32px;font-size:0.8rem">
+                {{ w.developer.name[0] }}
+              </div>
+              <div>
+                <div class="fw-600" style="font-size:0.875rem">{{ w.developer.name }}</div>
+                <div class="text-muted" style="font-size:0.75rem">{{ w.activeAssignments }} active tasks</div>
+              </div>
+            </div>
+            <div class="workload-bar-container">
+              <div class="progress-bar">
+                <div class="progress-fill"
+                     [style.width.%]="w.developer.currentWorkload"
+                     [style.background]="getWorkloadColor(w.developer.currentWorkload)">
+                </div>
+              </div>
+              <span class="workload-pct" [style.color]="getWorkloadColor(w.developer.currentWorkload)">
+                {{ w.developer.currentWorkload }}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </di

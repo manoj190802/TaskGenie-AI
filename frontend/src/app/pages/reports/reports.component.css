@@ -1,0 +1,43 @@
+.reports-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+/* Bar Charts */
+.bar-chart { display: flex; flex-direction: column; gap: 0.75rem; }
+.bar-item { display: flex; align-items: center; gap: 0.75rem; }
+.bar-label { width: 90px; font-size: 0.8rem; color: var(--text-secondary); flex-shrink: 0; }
+.bar-track { flex: 1; height: 28px; background: var(--bg-surface); border-radius: 6px; overflow: hidden; }
+.bar-fill {
+  height: 100%;
+  display: flex; align-items: center; justify-content: flex-end;
+  padding-right: 0.5rem;
+  border-radius: 6px;
+  min-width: 30px;
+  transition: width 0.5s ease;
+}
+.status-bar { background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+.cat-bar { background: linear-gradient(90deg, var(--secondary), var(--info)); }
+.bar-value { font-size: 0.75rem; font-weight: 700; color: white; }
+
+/* AI Stats */
+.ai-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; text-align: center; }
+.ai-stat-value { font-size: 1.75rem; font-weight: 800; }
+.ai-stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-top: 0.25rem; }
+.adoption-label { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.875rem; }
+.adoption-visual { }
+
+/* Workload Table */
+.workload-table { display: flex; flex-direction: column; gap: 0.625rem; }
+.workload-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.workload-right { display: flex; align-items: center; gap: 0.5rem; }
+.dev-cell { display: flex; align-items: center; gap: 0.5rem; }
+
+/* Pagination */
+.pagination { display: flex; gap: 0.35rem; margin-top: 1.25rem; flex-wrap: wrap; }
+.btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+@media (max-width: 900px) {
+  .reports-grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,16 @@
+TaskGenie-AI Requirements Specification
+
+1. User Authentication UI
+Implement the login and signup forms in Angular with reactive forms and custom validation. The user interface should handle JWT token storage in local storage, route guards for authorized pages, and a loading indicator for the API requests.
+
+2. Rest API backend development
+Create a .NET 8 Web API endpoint for registering users, authenticating credentials, and returning JWT tokens. Secure all controller endpoints with the [Authorize] attribute except for register and login. Implement password hashing using BCrypt.
+
+3. Document Upload and Extraction
+Create a Python FastAPI service endpoint at /extract-text that accepts uploaded documents (PDF, DOCX, TXT) and returns the extracted raw text content. Build fallbacks for different encoding types.
+
+4. Developer Workload and AI Recommendation
+Build a developer scoring algorithm that ranks available developers based on skills compatibility, years of experience, current workload percentage, and availability. Use weighted scoring where skills represents 40%, experience 25%, availability 20%, and workload 15%.
+
+5. Analytics Dashboard and Reporting
+Build a responsive dashboard using CSS grid displaying KPI widgets for total projects, pending tasks, assigned tasks, and completed tasks. Include charts showing tasks grouped by category and developer workload distribution. Support CSV export of assignment history.

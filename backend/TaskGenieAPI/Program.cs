@@ -5,11 +5,32 @@ using MongoDB.Driver;
 using TaskGenieAPI.Services;
 using TaskGenieAPI.Settings;
 
+Mongo2Go.MongoDbRunner? runner = null;
+try
+{
+    runner = Mongo2Go.MongoDbRunner.Start();
+    Console.WriteLine($"🚀 Started in-memory MongoDB runner on: {runner.ConnectionString}");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"⚠️ Could not start in-memory MongoDB runner: {ex.Message}");
+}
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Configuration ─────────────────────────────────────────────────────────────
-builder.Services.Configure<MongoDbSettings>(
-    builder.Configuration.GetSection("MongoDbSettings"));
+builder.Services.Configure<MongoDbSettings>(settings =>
+{
+    if (runner != null)
+    {
+        settings.ConnectionString = runner.ConnectionString;
+    }
+    else
+    {
+        settings.ConnectionString = builder.Configuration.GetSection("MongoDbSettings:ConnectionString").Value ?? "mongodb://localhost:27017";
+    }
+    settings.DatabaseName = builder.Configuration.GetSection("MongoDbSettings:DatabaseName").Value ?? "taskgenie";
+});
 builder.Services.Configure<JwtSettings>(
     builder.Configuration.GetSection("JwtSettings"));
 builder.Services.Configure<PythonAIServiceSettings>(
@@ -60,7 +81,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep PascalCase
+        // Use camelCase (standard REST convention) so Angular models align correctly
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
 builder.Services.AddEndpointsApiExplorer();
@@ -94,5 +117,11 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("✅ Default admin created: admin@taskgenie.ai / Admin@123");
     }
 }
+
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    runner?.Dispose();
+    Console.WriteLine("🛑 In-memory MongoDB runner stopped");
+});
 
 app.Run();

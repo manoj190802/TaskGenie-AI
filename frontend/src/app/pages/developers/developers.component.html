@@ -1,0 +1,124 @@
+<div class="page-header">
+  <div>
+    <h2 class="page-title">Developers</h2>
+    <p class="page-subtitle">Manage your developer team roster · {{ developers.length }} developers</p>
+  </div>
+  <button class="btn btn-primary" (click)="openModal()">+ Add Developer</button>
+</div>
+
+<div *ngIf="loading" class="loading-spinner"><div class="spinner"></div></div>
+
+<div *ngIf="!loading">
+  <div *ngIf="developers.length === 0" class="empty-state card">
+    <div class="icon">👨‍💻</div>
+    <h3>No developers yet</h3>
+    <p>Add developers with their skills to enable AI-powered task recommendations.</p>
+    <button class="btn btn-primary mt-2" (click)="openModal()">Add First Developer</button>
+  </div>
+
+  <div class="dev-grid" *ngIf="developers.length > 0">
+    <div class="dev-card card" *ngFor="let dev of developers">
+      <div class="dev-card-header">
+        <div class="avatar avatar-lg">{{ dev.name[0] }}</div>
+        <div class="dev-info">
+          <div class="dev-name">{{ dev.name }}</div>
+          <div class="dev-email">{{ dev.email }}</div>
+        </div>
+        <span class="badge" [ngClass]="getAvailBadge(dev.availability)">{{ dev.availability }}</span>
+      </div>
+
+      <div class="dev-meta">
+        <div class="meta-chip">🏆 {{ dev.experienceYears }} yr{{ dev.experienceYears !== 1 ? 's' : '' }}</div>
+        <div class="meta-chip">📋 Tasks in progress</div>
+      </div>
+
+      <div class="workload-section">
+        <div class="flex-between mb-1">
+          <span class="info-label">Workload</span>
+          <span class="fw-bold" [style.color]="getWorkloadColor(dev.currentWorkload)">{{ dev.currentWorkload }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill"
+               [style.width.%]="dev.currentWorkload"
+               [style.background]="getWorkloadColor(dev.currentWorkload)">
+          </div>
+        </div>
+      </div>
+
+      <div class="skills-section" *ngIf="(dev.skills?.length || 0) > 0">
+        <div class="chip-input-container">
+          <span class="chip" *ngFor="let s of dev.skills.slice(0, 5)">{{ s }}</span>
+          <span class="chip" *ngIf="dev.skills.length > 5">+{{ dev.skills.length - 5 }} more</span>
+        </div>
+      </div>
+
+      <div *ngIf="dev.bio" class="dev-bio">{{ dev.bio }}</div>
+
+      <div class="dev-actions">
+        <button class="btn btn-secondary btn-sm" (click)="openModal(dev)">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm" (click)="delete(dev.id!)">🗑️ Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <h3 style="margin-bottom:1.5rem">{{ editMode ? '✏️ Edit Developer' : '👨‍💻 Add Developer' }}</h3>
+
+    <div class="form-group">
+      <label class="form-label">Full Name *</label>
+      <input class="form-control" [(ngModel)]="newDev.name" placeholder="Jane Smith" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-control" [(ngModel)]="newDev.email" type="email" placeholder="jane@example.com" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Experience (years)</label>
+        <input class="form-control" [(ngModel)]="newDev.experienceYears" type="number" min="0" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Availability</label>
+        <select class="form-control" [(ngModel)]="newDev.availability">
+          <option value="Available">Available</option>
+          <option value="Busy">Busy</option>
+          <option value="OnLeave">On Leave</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Current Workload (0-100)</label>
+      <input class="form-control" [(ngModel)]="newDev.currentWorkload" type="range" min="0" max="100" />
+      <span class="text-muted" style="font-size:0.8rem">{{ newDev.currentWorkload }}%</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Skills (press Enter to add)</label>
+      <input class="form-control" [(ngModel)]="skillInput"
+        placeholder="e.g. Angular, TypeScript, MongoDB..."
+        (keydown)="onSkillKeydown($event)" />
+      <div class="chip-input-container mt-1">
+        <span class="chip" *ngFor="let s of newDev.skills">
+          {{ s }} <button (click)="removeSkill(s)">×</button>
+        </span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Bio</label>
+      <textarea class="form-control" [(ngModel)]="newDev.bio" placeholder="Short bio..." rows="2"></textarea>
+    </div>
+
+    <div class="error-msg" *ngIf="error">{{ error }}</div>
+
+    <div class="flex gap-2">
+      <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="saving">
+        {{ saving ? 'Saving...' : (editMode ? 'Update' : 'Add Developer') }}
+      </button>
+    </div>
+  </div>
+</div>

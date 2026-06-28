@@ -56,6 +56,8 @@ public class CreateProjectRequest
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public DateTime? DueDate { get; set; }
+    public string Priority { get; set; } = "Medium";
+    public string ClientName { get; set; } = string.Empty;
 }
 
 public class UpdateProjectRequest
@@ -64,6 +66,8 @@ public class UpdateProjectRequest
     public string? Description { get; set; }
     public string? Status { get; set; }
     public DateTime? DueDate { get; set; }
+    public string? Priority { get; set; }
+    public string? ClientName { get; set; }
 }
 
 // ── Task DTOs ─────────────────────────────────────────────────────────────────

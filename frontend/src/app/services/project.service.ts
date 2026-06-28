@@ -22,6 +22,14 @@ export class ProjectService {
     return this.http.post<Project>(this.apiUrl, project);
   }
 
+  /**
+   * Full wizard flow: Create project + upload file + AI analysis in one request.
+   * Returns project, extracted tasks with AI recommendations, tech stack, etc.
+   */
+  createWithUpload(formData: FormData): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/create-with-upload`, formData);
+  }
+
   update(id: string, project: Partial<Project>): Observable<Project> {
     return this.http.put<Project>(`${this.apiUrl}/${id}`, project);
   }

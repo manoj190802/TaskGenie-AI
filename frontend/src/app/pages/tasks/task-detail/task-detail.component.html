@@ -1,0 +1,197 @@
+<div *ngIf="loading" class="loading-spinner"><div class="spinner"></div></div>
+
+<div *ngIf="error && !task" class="empty-state">
+  <div class="icon">⚠️</div><p>{{ error }}</p>
+</div>
+
+<div *ngIf="!loading && task">
+  <div class="page-header">
+    <div>
+      <div class="back-link" (click)="router.navigate(['/tasks'])">← Back to Tasks</div>
+      <h2 class="page-title">{{ task.title }}</h2>
+    </div>
+    <div class="flex gap-1 flex-wrap">
+      <span class="badge" [ngClass]="getCatBadge(task.category)">{{ task.category }}</span>
+      <span class="badge" [ngClass]="getStatusBadge(task.status)">{{ task.status }}</span>
+    </div>
+  </div>
+
+  <div class="task-detail-grid">
+    <!-- Left: Task Info + Assignment -->
+    <div class="left-col">
+      <!-- Info Card -->
+      <div class="card mb-2">
+        <h3 style="margin-bottom:1rem">Task Information</h3>
+        <p style="margin-bottom:1rem">{{ task.description }}</p>
+
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Priority</div>
+            <div class="info-value">{{ task.priority }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Complexity</div>
+            <div class="info-value">{{ task.complexity }}</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Est. Hours</div>
+            <div class="info-value">{{ task.estimatedHours }}h</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Status</div>
+            <div class="info-value">{{ task.status }}</div>
+          </div>
+        </div>
+
+        <div class="skills-section" *ngIf="task.skillsRequired?.length">
+          <div class="info-label mb-1">Required Skills</div>
+          <div class="chip-input-container">
+            <span class="chip" *ngFor="let s of task.skillsRequired">{{ s }}</span>
+          </div>
+        </div>
+
+        <!-- Status Actions -->
+        <div class="status-actions mt-2">
+          <div class="info-label mb-1">Update Status</div>
+          <div class="flex gap-1 flex-wrap">
+            <button class="btn btn-secondary btn-sm" (click)="updateStatus('InProgress')"
+              [disabled]="task.status === 'InProgress' || task.status === 'Completed'">In Progress</button>
+            <button class="btn btn-success btn-sm" (click)="updateStatus('Completed')"
+              [disabled]="task.status === 'Completed'">Mark Complete</button>
+            <button class="btn btn-danger btn-sm" (click)="updateStatus('Cancelled')"
+              [disabled]="task.status === 'Completed' || task.status === 'Cancelled'">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Assignment -->
+      <div class="card" *ngIf="task.status === 'Pending'">
+        <h3 style="margin-bottom:1rem">Manual Assignment</h3>
+        <div class="form-group">
+          <label class="form-label">Select Developer</label>
+          <select class="form-control" [(ngModel)]="selectedDeveloperId">
+            <option value="">-- Choose Developer --</option>
+            <option *ngFor="let d of developers" [value]="d.id">
+              {{ d.name }} ({{ d.availability }}, {{ d.currentWorkload }}% workload)
+            </option>
+          </select>
+        </div>
+        <button class="btn btn-primary" (click)="assignDeveloper(selectedDeveloperId)"
+          [disabled]="!selectedDeveloperId || assigning">
+          {{ assigning ? 'Assigning...' : 'Assign Developer' }}
+        </button>
+        <div class="msg-box" [class.success]="assignMsg.startsWith('✅')" [class.error-b]="assignMsg.startsWith('❌')"
+          *ngIf="assignMsg" style="margin-top:0.75rem">{{ assignMsg }}</div>
+      </div>
+
+      <!-- Current Assignment -->
+      <div class="card" *ngIf="task.assignedDeveloperName">
+        <h3 style="margin-bottom:1rem">Current Assignment</h3>
+        <div class="dev-assigned">
+          <div class="avatar avatar-lg">{{ task.assignedDeveloperName[0] }}</div>
+          <div>
+            <div class="fw-bold">{{ task.assignedDeveloperName }}</div>
+            <div class="text-muted" style="font-size:0.85rem">Assigned Developer</div>
+          </div>
+        </div>
+        <a routerLink="/assignments" class="btn btn-secondary btn-sm mt-2">View Assignment History</a>
+      </div>
+    </div>
+
+    <!-- Right: AI Recommendations -->
+    <div class="card">
+      <div class="card-header">
+        <h3>🤖 AI Recommendations</h3>
+        <button class="btn btn-primary btn-sm" (click)="getRecommendations()" [disabled]="loadingRecs">
+          {{ loadingRecs ? '⏳ Analyzing...' : '✨ Get Recommendations' }}
+        </button>
+      </div>
+
+      <div *ngIf="loadingRecs" class="loading-spinner"><div class="spinner"></div></div>
+
+      <div *ngIf="!loadingRecs && !matchResult" class="empty-state" style="padding:2rem">
+        <div class="icon">🤖</div>
+        <p>Click "Get Recommendations" to find the best developer for this task using AI scoring.</p>
+      </div>
+
+      <!-- Best Match Banner -->
+      <div class="best-match-banner" *ngIf="matchResult?.bestMatch">
+        <div class="best-match-header">
+          <span class="best-label">⭐ Best Match</span>
+          <span class="best-score" [style.color]="getScoreColor(matchResult!.bestMatch!.score)">
+            {{ getScorePct(matchResult!.bestMatch!.score) }}%
+          </span>
+        </div>
+        <div class="dev-row">
+          <div class="avatar avatar-lg">{{ matchResult!.bestMatch!.developerName[0] }}</div>
+          <div class="flex-1">
+            <div class="fw-bold">{{ matchResult!.bestMatch!.developerName }}</div>
+            <div class="text-muted" style="font-size:0.8rem;margin-top:0.2rem">
+              {{ matchResult!.bestMatch!.recommendationReason }}
+            </div>
+          </div>
+          <button class="btn btn-success btn-sm" (click)="assignDeveloper(matchResult!.bestMatch!.developerId, matchResult!.bestMatch!.score)"
+            *ngIf="task.status === 'Pending'" [disabled]="assigning">
+            ✅ Assign
+          </button>
+        </div>
+      </div>
+
+      <!-- All Recommendations -->
+      <div class="recommendations-list" *ngIf="matchResult?.recommendations?.length">
+        <h4 style="margin-bottom:0.75rem;color:var(--text-secondary);font-size:0.85rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">
+          All Candidates ({{ matchResult!.recommendations.length }})
+        </h4>
+
+        <div class="rec-card" *ngFor="let rec of matchResult!.recommendations; let i = index">
+          <div class="rec-header">
+            <div class="rec-rank">{{ i + 1 }}</div>
+            <div class="avatar">{{ rec.developerName[0] }}</div>
+            <div class="flex-1">
+              <div class="fw-600">{{ rec.developerName }}</div>
+              <div class="text-muted" style="font-size:0.75rem">{{ rec.recommendationReason | slice:0:80 }}...</div>
+            </div>
+            <div class="rec-score" [style.color]="getScoreColor(rec.score)">
+              {{ getScorePct(rec.score) }}%
+            </div>
+          </div>
+
+          <!-- Score Breakdown -->
+          <div class="score-breakdown">
+            <div class="score-bar">
+              <span class="score-bar-label">Skill Match</span>
+              <div class="score-bar-track"><div class="score-bar-fill" [style.width.%]="getScorePct(rec.skillMatchScore)"></div></div>
+              <span class="score-bar-value">{{ getScorePct(rec.skillMatchScore) }}%</span>
+            </div>
+            <div class="score-bar">
+              <span class="score-bar-label">Experience</span>
+              <div class="score-bar-track"><div class="score-bar-fill" [style.width.%]="getScorePct(rec.experienceScore)"></div></div>
+              <span class="score-bar-value">{{ getScorePct(rec.experienceScore) }}%</span>
+            </div>
+            <div class="score-bar">
+              <span class="score-bar-label">Availability</span>
+              <div class="score-bar-track"><div class="score-bar-fill" [style.width.%]="getScorePct(rec.availabilityScore)"></div></div>
+              <span class="score-bar-value">{{ getScorePct(rec.availabilityScore) }}%</span>
+            </div>
+            <div class="score-bar">
+              <span class="score-bar-label">Low Workload</span>
+              <div class="score-bar-track"><div class="score-bar-fill" [style.width.%]="getScorePct(rec.workloadScore)"></div></div>
+              <span class="score-bar-value">{{ getScorePct(rec.workloadScore) }}%</span>
+            </div>
+          </div>
+
+          <div class="skills-row" *ngIf="rec.matchedSkills?.length">
+            <span class="chip" *ngFor="let s of rec.matchedSkills" style="background:rgba(81,207,102,0.1);border-color:rgba(81,207,102,0.3);color:var(--success)">✓ {{ s }}</span>
+            <span class="chip" *ngFor="let s of rec.missingSkills" style="background:rgba(255,107,107,0.1);border-color:rgba(255,107,107,0.3);color:var(--accent)">✗ {{ s }}</span>
+          </div>
+
+          <button class="btn btn-secondary btn-sm mt-1"
+            (click)="assignDeveloper(rec.developerId, rec.score)"
+            *ngIf="task.status === 'Pending'" [disabled]="assigning">
+            Assign This Developer
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

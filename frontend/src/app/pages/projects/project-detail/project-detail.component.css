@@ -1,0 +1,284 @@
+/* ── Navigation ─────────────────────────────────────────────────────────── */
+.back-link {
+  color: var(--primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+.back-link:hover { text-decoration: underline; }
+
+/* ── Grid Layout ─────────────────────────────────────────────────────────── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.left-panel { display: flex; flex-direction: column; }
+
+/* ── Format pills in card header ─────────────────────────────────────────── */
+.format-pills { display: flex; gap: 0.3rem; align-items: center; }
+.format-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.format-pill.pdf  { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.format-pill.doc  { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.format-pill.docx { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+.format-pill.txt  { background: rgba(107, 114, 128, 0.15); color: #9ca3af; }
+
+/* ── Drop Zone ───────────────────────────────────────────────────────────── */
+.drop-zone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  transition: all 0.25s ease;
+  background: transparent;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.drop-zone:hover {
+  border-color: var(--primary);
+  background: rgba(108, 99, 255, 0.04);
+}
+
+/* Drag-over state — glowing highlight */
+.drop-zone.drag-over {
+  border-color: var(--primary);
+  border-style: solid;
+  background: rgba(108, 99, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.12), inset 0 0 24px rgba(108, 99, 255, 0.06);
+  transform: scale(1.01);
+}
+
+/* File selected state */
+.drop-zone.has-file {
+  border-color: var(--success);
+  border-style: solid;
+  background: rgba(81, 207, 102, 0.04);
+  cursor: default;
+}
+
+/* ── Drop Content (idle / drag-over) ─────────────────────────────────────── */
+.drop-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.drop-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+  user-select: none;
+}
+
+.drop-icon.drag-pulse {
+  animation: pulse-drop 0.6s ease infinite alternate;
+}
+
+@keyframes pulse-drop {
+  from { transform: scale(1); }
+  to   { transform: scale(1.2); }
+}
+
+.drop-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.drop-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.browse-btn {
+  margin-top: 0.1rem;
+  cursor: pointer;
+}
+
+.drop-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+/* ── File Preview (after file selected) ──────────────────────────────────── */
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0 0.5rem;
+}
+
+.file-preview-icon {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.file-preview-info {
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+}
+
+.file-preview-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-size {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+}
+
+.file-clear-btn {
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.25);
+  color: var(--accent);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  line-height: 1;
+}
+.file-clear-btn:hover {
+  background: rgba(255, 107, 107, 0.25);
+  transform: scale(1.1);
+}
+
+/* ── Current File Badge ───────────────────────────────────────────────────── */
+.current-file-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+.current-file-icon { font-size: 1rem; }
+.current-file-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.current-file-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--success);
+  padding: 0.1rem 0.4rem;
+  background: rgba(81, 207, 102, 0.12);
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* ── Upload button ───────────────────────────────────────────────────────── */
+.w-btn { width: 100%; justify-content: center; margin-top: 0.5rem; }
+
+.upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Messages ─────────────────────────────────────────────────────────────── */
+.msg-box {
+  margin-top: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.msg-box.success { background: rgba(81, 207, 102, 0.1); border: 1px solid rgba(81, 207, 102, 0.3); color: var(--success); }
+.msg-box.error-b { background: rgba(255, 107, 107, 0.1); border: 1px solid rgba(255, 107, 107, 0.3); color: var(--accent); }
+
+/* ── AI Info ─────────────────────────────────────────────────────────────── */
+.ai-info { margin-bottom: 1rem; }
+.ai-features { list-style: none; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.ai-features li { font-size: 0.8rem; color: var(--text-secondary); }
+
+.analysis-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.tech-stack { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.75rem; }
+
+/* ── Tasks ───────────────────────────────────────────────────────────────── */
+.tasks-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.task-row {
+  padding: 0.875rem 1rem;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+.task-row:hover { border-color: var(--border-hover); background: var(--bg-elevated); }
+
+.task-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; }
+.task-badges { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+
+.task-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .detail-grid { grid-template-columns: 1fr; }
+}

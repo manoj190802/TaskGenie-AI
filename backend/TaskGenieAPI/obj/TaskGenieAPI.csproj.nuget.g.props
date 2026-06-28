@@ -13,7 +13,6 @@
     <SourceRoot Include="C:\Users\manoj\.nuget\packages\" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <PkgAWSSDK_Core Condition=" '$(PkgAWSSDK_Core)' == '' ">C:\Users\manoj\.nuget\packages\awssdk.core\3.7.100.14</PkgAWSSDK_Core>
-    <PkgAWSSDK_SecurityToken Condition=" '$(PkgAWSSDK_SecurityToken)' == '' ">C:\Users\manoj\.nuget\packages\awssdk.securitytoken\3.7.100.14</PkgAWSSDK_SecurityToken>
+    <PkgMongo2Go Condition=" '$(PkgMongo2Go)' == '' ">C:\Users\manoj\.nuget\packages\mongo2go\4.1.0</PkgMongo2Go>
   </PropertyGroup>
 </Project>

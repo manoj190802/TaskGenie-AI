@@ -110,6 +110,12 @@ public class Project
 
     [BsonElement("totalEstimatedHours")]
     public int TotalEstimatedHours { get; set; }
+
+    [BsonElement("priority")]
+    public string Priority { get; set; } = "Medium"; // Low | Medium | High
+
+    [BsonElement("clientName")]
+    public string ClientName { get; set; } = string.Empty;
 }
 
 public class TaskItem

@@ -1,0 +1,8 @@
+.filters-bar {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  flex-wrap: wrap;
+}
+.filter-group { display: flex; flex-direction: column; gap: 0.35rem; min-width: 160px; }
+.dev-cell { display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; }
