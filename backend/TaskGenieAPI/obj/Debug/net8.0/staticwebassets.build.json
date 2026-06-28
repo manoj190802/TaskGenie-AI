@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "tVLaQNdDe2XWUzfl7MTolM8LkV6Mgvm5PeC0yb88gKw=",
+  "Source": "TaskGenieAPI",
+  "BasePath": "_content/TaskGenieAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
