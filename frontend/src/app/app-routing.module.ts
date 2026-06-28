@@ -12,7 +12,6 @@ const routes: Routes = [
       { path: 'dashboard', loadChildren: () => import('./pages/dashboard/dashboard.module').then(m => m.DashboardModule) },
       { path: 'projects', loadChildren: () => import('./pages/projects/projects.module').then(m => m.ProjectsModule) },
       { path: 'developers', loadChildren: () => import('./pages/developers/developers.module').then(m => m.DevelopersModule) },
-      { path: 'assignments', loadChildren: () => import('./pages/assignments/assignments.module').then(m => m.AssignmentsModule) },
       { path: 'reports', loadChildren: () => import('./pages/reports/reports.module').then(m => m.ReportsModule) },
     ]
   },

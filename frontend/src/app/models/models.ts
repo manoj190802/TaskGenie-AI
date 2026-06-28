@@ -18,6 +18,7 @@ export interface Developer {
   avatarUrl?: string;
   createdAt?: string;
   isActive?: boolean;
+  assignedProjects?: string[];
 }
 
 export interface Project {
@@ -35,6 +36,8 @@ export interface Project {
   projectSummary?: string;
   techStack?: string[];
   totalEstimatedHours?: number;
+  assignedDeveloperId?: string;
+  assignedDeveloperName?: string;
 }
 
 export interface TaskItem {
@@ -116,25 +119,19 @@ export interface MatchResult {
 export interface DashboardStats {
   totalProjects: number;
   activeProjects: number;
-  totalTasks: number;
-  pendingTasks: number;
-  assignedTasks: number;
-  inProgressTasks: number;
-  completedTasks: number;
   totalDevelopers: number;
   availableDevelopers: number;
-  totalAssignments: number;
-  recentAssignments: RecentAssignment[];
-  tasksByCategory: CategoryBreakdown[];
+  recentProjects: RecentProject[];
 }
 
-export interface RecentAssignment {
-  assignmentId: string;
-  taskTitle: string;
+export interface RecentProject {
+  projectId: string;
   projectName: string;
-  developerName: string;
-  assignedAt: string;
   status: string;
+  priority: string;
+  clientName: string;
+  assignedDeveloperName?: string;
+  createdAt: string;
 }
 
 export interface CategoryBreakdown {

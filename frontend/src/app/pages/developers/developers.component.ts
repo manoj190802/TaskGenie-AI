@@ -89,8 +89,8 @@ export class DevelopersComponent implements OnInit {
   }
 
   getWorkloadColor(pct: number): string {
-    if (pct < 40) return 'var(--success)';
-    if (pct < 70) return 'var(--warning)';
+    if (pct <= 1) return 'var(--success)';
+    if (pct === 2) return 'var(--warning)';
     return 'var(--accent)';
   }
 }

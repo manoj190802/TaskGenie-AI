@@ -29,19 +29,26 @@
 
       <div class="dev-meta">
         <div class="meta-chip">🏆 {{ dev.experienceYears }} yr{{ dev.experienceYears !== 1 ? 's' : '' }}</div>
-        <div class="meta-chip">📋 Tasks in progress</div>
+        <div class="meta-chip" [title]="dev.assignedProjects?.join(', ') || 'No projects'">📁 Projects: {{ dev.assignedProjects?.length || 0 }}</div>
       </div>
 
       <div class="workload-section">
         <div class="flex-between mb-1">
-          <span class="info-label">Workload</span>
-          <span class="fw-bold" [style.color]="getWorkloadColor(dev.currentWorkload)">{{ dev.currentWorkload }}%</span>
+          <span class="info-label">Active Projects (Workload)</span>
+          <span class="fw-bold" [style.color]="getWorkloadColor(dev.currentWorkload)">{{ dev.currentWorkload }} project{{ dev.currentWorkload !== 1 ? 's' : '' }}</span>
         </div>
         <div class="progress-bar">
           <div class="progress-fill"
-               [style.width.%]="dev.currentWorkload"
+               [style.width.%]="dev.currentWorkload >= 3 ? 100 : dev.currentWorkload * 33"
                [style.background]="getWorkloadColor(dev.currentWorkload)">
           </div>
+        </div>
+      </div>
+
+      <div class="projects-section mt-1" *ngIf="dev.assignedProjects && dev.assignedProjects.length > 0">
+        <div class="info-label mb-05" style="font-size: 0.75rem; font-weight:700; text-transform:uppercase;">Assigned Projects</div>
+        <div class="chip-input-container">
+          <span class="chip" *ngFor="let p of dev.assignedProjects">{{ p }}</span>
         </div>
       </div>
 

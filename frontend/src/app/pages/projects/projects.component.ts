@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ProjectService } from '../../services/project.service';
-import { AssignmentService } from '../../services/assignment.service';
 import { Project } from '../../models/models';
 
 type WizardStep = 'details' | 'upload' | 'analyzing' | 'results';
@@ -15,8 +14,20 @@ export class ProjectsComponent implements OnInit {
   projects: any[] = [];
   loading = true;
   showWizard = false;
+  activeTab: 'analysis' | 'projects' = 'analysis';
 
-  // ── Wizard State ──────────────────────────────────────────────────────────
+  // ── Tab 1: Project Analysis State ──────────────────────────────────────────
+  analysisFile: File | null = null;
+  analysisDragOver = false;
+  analysisFileError = '';
+  analysisLoading = false;
+  analysisError = '';
+  analysisResult: any = null;
+  analysisProjectName = '';
+  assigningDeveloperId = '';
+  assignmentSuccessMsg = '';
+
+  // ── Tab 2: Wizard State (Project Creation) ───────────────────────────────
   step: WizardStep = 'details';
   saving = false;
   wizardError = '';
@@ -39,14 +50,9 @@ export class ProjectsComponent implements OnInit {
 
   // Step 3 - Results
   wizardResult: any = null;
-  assigningTaskId = '';
-  assigningDeveloperId: Record<string, string> = {}; // taskId → developerId
-  assignedTasks: Set<string> = new Set();
-  assignmentNotes: Record<string, string> = {};
 
   constructor(
     private projectService: ProjectService,
-    private assignmentService: AssignmentService,
     private router: Router,
     private route: ActivatedRoute,
   ) {}
@@ -55,6 +61,7 @@ export class ProjectsComponent implements OnInit {
     this.load();
     this.route.queryParams.subscribe(params => {
       if (params['new'] === 'true') {
+        this.activeTab = 'projects';
         this.openWizard();
       }
     });
@@ -62,8 +69,155 @@ export class ProjectsComponent implements OnInit {
 
   load(): void {
     this.projectService.getAll().subscribe({
-      next: (data) => { this.projects = data; this.loading = false; },
+      next: (data) => {
+        this.projects = data.map(p => {
+          if (p.project) return p;
+          return {
+            project: p,
+            taskCounts: { total: 0, pending: 0, assigned: 0, completed: 0 }
+          };
+        }).filter((item: any) => item.project.status === 'Active');
+        this.loading = false;
+      },
       error: () => { this.loading = false; }
+    });
+  }
+
+  completeProject(project: any, event: Event): void {
+    event.stopPropagation();
+    if (!confirm(`Are you sure you want to mark project "${project.name}" as Completed?`)) return;
+
+    this.projectService.update(project.id, { status: 'Completed' }).subscribe({
+      next: () => {
+        this.assignmentSuccessMsg = `✅ Project "${project.name}" completed successfully!`;
+        this.load();
+        setTimeout(() => this.assignmentSuccessMsg = '', 5000);
+      },
+      error: (err) => {
+        this.analysisError = err.error?.message || 'Failed to complete project.';
+      }
+    });
+  }
+
+  switchTab(tab: 'analysis' | 'projects'): void {
+    this.activeTab = tab;
+  }
+
+  // ── Project Analysis File Handlers ─────────────────────────────────────────
+  onAnalysisFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files?.length) this.setAnalysisFile(input.files[0]);
+  }
+
+  onAnalysisDragOver(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.analysisDragOver = true;
+  }
+
+  onAnalysisDragLeave(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.analysisDragOver = false;
+  }
+
+  onAnalysisDrop(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.analysisDragOver = false;
+    const files = event.dataTransfer?.files;
+    if (files && files.length > 0) this.setAnalysisFile(files[0]);
+  }
+
+  private setAnalysisFile(file: File): void {
+    this.analysisFileError = '';
+    this.analysisResult = null;
+    this.analysisError = '';
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!this.ALLOWED_EXT.includes(ext)) {
+      this.analysisFileError = `❌ "${ext}" not supported. Use PDF, DOCX, DOC, or TXT.`;
+      this.analysisFile = null;
+      return;
+    }
+    if (file.size / 1024 / 1024 > this.MAX_MB) {
+      this.analysisFileError = `❌ File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max ${this.MAX_MB} MB.`;
+      this.analysisFile = null;
+      return;
+    }
+    this.analysisFile = file;
+  }
+
+  clearAnalysisFile(): void {
+    this.analysisFile = null;
+    this.analysisFileError = '';
+    this.analysisResult = null;
+    this.analysisError = '';
+    this.analysisProjectName = '';
+    this.assigningDeveloperId = '';
+    this.assignmentSuccessMsg = '';
+  }
+
+  getAnalysisFileIcon(): string {
+    const ext = this.analysisFile?.name.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return '📕';
+    if (ext === 'docx' || ext === 'doc') return '📘';
+    if (ext === 'txt') return '📄';
+    return '📁';
+  }
+
+  getAnalysisFileSizeLabel(): string {
+    if (!this.analysisFile) return '';
+    const kb = this.analysisFile.size / 1024;
+    return kb < 1024 ? `${kb.toFixed(1)} KB` : `${(kb / 1024).toFixed(1)} MB`;
+  }
+
+  runAnalysis(): void {
+    if (!this.analysisFile) return;
+    this.analysisLoading = true;
+    this.analysisError = '';
+    this.analysisResult = null;
+    this.assignmentSuccessMsg = '';
+
+    this.projectService.analyzeDocument(this.analysisFile).subscribe({
+      next: (res) => {
+        this.analysisResult = res;
+        this.analysisLoading = false;
+      },
+      error: (err) => {
+        this.analysisError = err.error?.message || 'Failed to analyze requirements document. Please try again.';
+        this.analysisLoading = false;
+      }
+    });
+  }
+
+  assignDeveloper(dev: any): void {
+    if (!this.analysisFile) return;
+    this.assigningDeveloperId = dev.developerId;
+    this.analysisError = '';
+    this.assignmentSuccessMsg = '';
+
+    const projectName = this.analysisProjectName.trim() || `Project - ${this.analysisFile.name.split('.')[0]}`;
+
+    const fd = new FormData();
+    fd.append('name', projectName);
+    fd.append('description', `Analyzed requirements: ${this.analysisFile.name}`);
+    fd.append('priority', 'Medium');
+    fd.append('clientName', 'AI Matched Client');
+    fd.append('assignedDeveloperId', dev.developerId || '');
+    fd.append('assignedDeveloperName', dev.name);
+    fd.append('file', this.analysisFile, this.analysisFile.name);
+
+    this.projectService.createWithUpload(fd).subscribe({
+      next: () => {
+        this.assignmentSuccessMsg = `🎉 Project "${projectName}" assigned successfully to ${dev.name}!`;
+        this.assigningDeveloperId = '';
+        this.load();
+        setTimeout(() => this.assignmentSuccessMsg = '', 6000);
+      },
+      error: (err) => {
+        this.analysisError = err.error?.message || 'Failed to create and assign project. Please try again.';
+        this.assigningDeveloperId = '';
+      }
     });
   }
 
@@ -75,14 +229,11 @@ export class ProjectsComponent implements OnInit {
     this.fileError = '';
     this.wizardError = '';
     this.wizardResult = null;
-    this.assignedTasks = new Set();
-    this.assigningDeveloperId = {};
-    this.assignmentNotes = {};
     this.showWizard = true;
   }
 
   closeWizard(): void {
-    if (this.step === 'analyzing') return; // don't close during analysis
+    if (this.step === 'analyzing') return;
     this.showWizard = false;
   }
 
@@ -98,7 +249,7 @@ export class ProjectsComponent implements OnInit {
     if (this.step === 'upload') this.step = 'details';
   }
 
-  // ── File Handling ──────────────────────────────────────────────────────────
+  // ── File Handling (Wizard) ────────────────────────────────────────────────
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) this.setFile(input.files[0]);
@@ -172,14 +323,6 @@ export class ProjectsComponent implements OnInit {
     this.projectService.createWithUpload(fd).subscribe({
       next: (res) => {
         this.wizardResult = res;
-        // Initialize dev selections with top recommendation
-        if (res.tasks?.length) {
-          for (const task of res.tasks) {
-            if (task.aiRecommendations?.length) {
-              this.assigningDeveloperId[task.id] = task.aiRecommendations[0].developerId;
-            }
-          }
-        }
         this.step = 'results';
         this.load();
       },
@@ -188,36 +331,6 @@ export class ProjectsComponent implements OnInit {
         this.step = 'upload';
       }
     });
-  }
-
-  // ── Task Assignment ────────────────────────────────────────────────────────
-  assignTask(task: any): void {
-    const developerId = this.assigningDeveloperId[task.id];
-    if (!developerId) return;
-
-    this.assigningTaskId = task.id;
-    const rec = task.aiRecommendations?.find((r: any) => r.developerId === developerId);
-
-    this.assignmentService.create({
-      taskId: task.id,
-      developerId,
-      notes: this.assignmentNotes[task.id] || '',
-      aiAssisted: !!rec,
-      aiScore: rec?.score ?? null,
-    }).subscribe({
-      next: () => {
-        this.assignedTasks.add(task.id);
-        this.assigningTaskId = '';
-      },
-      error: (err) => {
-        this.wizardError = err.error?.message || 'Assignment failed.';
-        this.assigningTaskId = '';
-      }
-    });
-  }
-
-  isAssigned(taskId: string): boolean {
-    return this.assignedTasks.has(taskId);
   }
 
   goToProject(): void {
@@ -241,22 +354,10 @@ export class ProjectsComponent implements OnInit {
     return m[p] || 'badge-muted';
   }
 
-  getCatBadge(cat: string): string {
-    const m: Record<string, string> = {
-      Frontend: 'badge-primary', Backend: 'badge-secondary',
-      'Full Stack': 'badge-warning', Testing: 'badge-success', DevOps: 'badge-danger'
-    };
-    return m[cat] || 'badge-muted';
-  }
-
   getScoreColor(score: number): string {
-    if (score >= 0.75) return 'var(--success)';
-    if (score >= 0.5) return 'var(--warning)';
+    if (score >= 80) return 'var(--success)';
+    if (score >= 50) return 'var(--warning)';
     return 'var(--accent)';
-  }
-
-  getScorePercent(score: number): number {
-    return Math.round(score * 100);
   }
 
   get wizardStepIndex(): number {

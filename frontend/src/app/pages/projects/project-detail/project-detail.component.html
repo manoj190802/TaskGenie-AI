@@ -11,58 +11,87 @@
     <div>
       <div class="back-link" (click)="router.navigate(['/projects'])">← Back to Projects</div>
       <h2 class="page-title">{{ project.name }}</h2>
-      <p class="page-subtitle">{{ project.description }}</p>
+      <p class="page-subtitle">{{ project.description || 'No description provided' }}</p>
     </div>
     <div class="flex gap-1">
       <span class="badge" [ngClass]="getStatusBadge(project.status)">{{ project.status }}</span>
-      <span class="badge badge-primary" *ngIf="project.aiAnalyzed">🤖 AI Analyzed</span>
+      <span class="badge badge-primary" *ngIf="project.aiAnalyzed">🤖 Processed</span>
     </div>
   </div>
 
   <div class="detail-grid">
-    <!-- Left Panel: Upload + Analysis -->
+    <!-- Left Panel: Project Info, Assigned Dev & Document Upload -->
     <div class="left-panel">
 
-      <!-- ── Requirements Upload Card ──────────────────────────────────── -->
+      <!-- Project Info Card -->
       <div class="card mb-2">
         <div class="card-header">
-          <h3>📄 Requirements Document</h3>
-          <span class="format-pills">
-            <span class="format-pill pdf">PDF</span>
-            <span class="format-pill doc">DOC</span>
-            <span class="format-pill docx">DOCX</span>
-            <span class="format-pill txt">TXT</span>
-          </span>
+          <h3>🗂️ Project Details</h3>
         </div>
+        <div class="info-list mt-1">
+          <div class="info-item">
+            <span class="info-label">Client Name:</span>
+            <span class="info-value">{{ project.clientName || 'Internal' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Priority:</span>
+            <span class="badge" [ngClass]="getPriorityBadge(project.priority)">{{ project.priority || 'Medium' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Deadline:</span>
+            <span class="info-value">{{ project.dueDate ? (project.dueDate | date:'MMMM d, yyyy') : 'No deadline set' }}</span>
+          </div>
+          <div class="info-item" *ngIf="project.createdAt">
+            <span class="info-label">Created Date:</span>
+            <span class="info-value">{{ project.createdAt | date:'MMM d, yyyy' }}</span>
+          </div>
+          
+          <div class="divider mt-1 mb-1"></div>
+          
+          <div class="info-item flex-col items-start gap-05">
+            <span class="info-label">Assigned Developer:</span>
+            <div class="assigned-dev-box mt-05" *ngIf="project.assignedDeveloperName">
+              <span class="dev-name-label">👤 {{ project.assignedDeveloperName }}</span>
+              <button class="btn btn-secondary btn-xs text-danger" (click)="unassignDeveloper()">Unassign</button>
+            </div>
+            <span class="text-muted italic" *ngIf="!project.assignedDeveloperName">❌ No developer assigned</span>
+          </div>
+        </div>
+      </div>
 
-        <!-- Drop Zone -->
+      <!-- Requirements Upload Card -->
+      <div class="card mb-2">
+        <div class="card-header">
+          <h3>📄 Upload Requirements</h3>
+        </div>
+        
+        <!-- Drag and Drop Zone -->
         <div
-          class="drop-zone"
+          class="drop-zone mt-1"
           [class.drag-over]="isDragOver"
           [class.has-file]="selectedFile"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onDrop($event)"
         >
-          <!-- Hidden real file input -->
           <input id="fileInput" type="file" accept=".pdf,.docx,.doc,.txt" hidden (change)="onFileSelected($event)" />
 
-          <!-- No file selected state -->
+          <!-- No file selected -->
           <div *ngIf="!selectedFile" class="drop-content">
             <div class="drop-icon" [class.drag-pulse]="isDragOver">
               {{ isDragOver ? '📂' : '📁' }}
             </div>
             <div class="drop-title">
-              {{ isDragOver ? 'Release to upload' : 'Drag & drop your file here' }}
+              {{ isDragOver ? 'Drop it here!' : 'Drag & drop file here' }}
             </div>
             <div class="drop-subtitle" *ngIf="!isDragOver">or</div>
-            <label for="fileInput" class="btn btn-secondary btn-sm browse-btn" *ngIf="!isDragOver">
+            <label for="fileInput" class="btn btn-secondary btn-sm" *ngIf="!isDragOver">
               Browse File
             </label>
-            <div class="drop-hint">PDF, DOCX, DOC, TXT · Max 10 MB</div>
+            <div class="drop-hint">PDF, DOC, DOCX, TXT · Max 10 MB</div>
           </div>
 
-          <!-- File selected state -->
+          <!-- File selected -->
           <div *ngIf="selectedFile" class="file-preview">
             <div class="file-preview-icon">{{ getFileIcon() }}</div>
             <div class="file-preview-info">
@@ -73,106 +102,118 @@
           </div>
         </div>
 
-        <!-- Upload Error/Hint -->
-        <div class="msg-box error-b" *ngIf="uploadMsg && uploadMsg.startsWith('❌')">{{ uploadMsg }}</div>
+        <!-- Upload Error Message -->
+        <div class="msg-box error-b mt-1" *ngIf="uploadMsg && uploadMsg.startsWith('❌')">{{ uploadMsg }}</div>
 
-        <!-- Currently uploaded file -->
-        <div *ngIf="project.requirementsFileName && !selectedFile" class="current-file-badge">
+        <!-- Current File Badge -->
+        <div *ngIf="project.requirementsFileName && !selectedFile" class="current-file-badge mt-1">
           <span class="current-file-icon">📎</span>
           <span class="current-file-name">{{ project.requirementsFileName }}</span>
-          <span class="current-file-label">Current</span>
+          <span class="current-file-label">Active Document</span>
         </div>
 
         <!-- Upload Button -->
         <button
-          class="btn btn-secondary w-btn"
+          class="btn btn-primary w-btn mt-1"
           (click)="uploadRequirements()"
           [disabled]="uploading || !selectedFile"
         >
-          <span *ngIf="!uploading">📤 Upload &amp; Extract Text</span>
+          <span *ngIf="!uploading">📤 Upload Requirements</span>
           <span *ngIf="uploading" class="upload-progress">
-            <span class="upload-spinner"></span> Extracting text...
+            <span class="upload-spinner"></span> Processing document...
           </span>
         </button>
 
-        <div class="msg-box success" *ngIf="uploadMsg && uploadMsg.startsWith('✅')">{{ uploadMsg }}</div>
+        <div class="msg-box success mt-1" *ngIf="uploadMsg && uploadMsg.startsWith('✅')">{{ uploadMsg }}</div>
       </div>
 
-      <!-- ── AI Analysis Card ──────────────────────────────────────────── -->
+      <!-- Matching Developers Card -->
       <div class="card">
         <div class="card-header">
-          <h3>🤖 AI Analysis</h3>
+          <h3>🤝 Matching Developers</h3>
         </div>
-
-        <div class="ai-info">
-          <p>Extract tasks automatically from your requirements document using AI analysis.</p>
-          <ul class="ai-features">
-            <li>✅ Task classification (Frontend / Backend / Full Stack / Testing)</li>
-            <li>✅ Skills detection and estimation</li>
-            <li>✅ Priority and complexity scoring</li>
-            <li>✅ Hours estimation</li>
-          </ul>
-        </div>
-
-        <button class="btn btn-primary w-btn"
-          (click)="analyzeRequirements()"
-          [disabled]="analyzing || !project.requirementsText">
-          <span *ngIf="!analyzing">🚀 Run AI Analysis</span>
-          <span *ngIf="analyzing" class="upload-progress">
-            <span class="upload-spinner"></span> Analyzing with AI...
-          </span>
-        </button>
-
-        <div *ngIf="!project.requirementsText" class="text-muted mt-1" style="font-size:0.8rem">
-          Upload a requirements file first to enable AI analysis.
-        </div>
-
-        <div class="msg-box success" *ngIf="analyzeMsg && analyzeMsg.startsWith('✅')">{{ analyzeMsg }}</div>
-        <div class="msg-box error-b" *ngIf="analyzeMsg && analyzeMsg.startsWith('❌')">{{ analyzeMsg }}</div>
-
-        <!-- Analysis summary -->
-        <div class="analysis-summary" *ngIf="project.projectSummary">
-          <p>{{ project.projectSummary }}</p>
-          <div class="tech-stack" *ngIf="project.techStack?.length > 0">
-            <span class="chip" *ngFor="let t of project.techStack">{{ t }}</span>
+        
+        <div *ngIf="recommendationsLoading" class="loading-spinner mt-1"><div class="spinner"></div></div>
+        
+        <div *ngIf="!recommendationsLoading" class="matching-devs-section mt-1">
+          <!-- Not analyzed yet -->
+          <div *ngIf="!project.requirementsText" class="text-muted italic" style="font-size:0.85rem">
+            Upload a requirements document to generate developer matches.
           </div>
-          <div class="text-muted mt-1" style="font-size:0.8rem">
-            Total estimated: <strong style="color:var(--text-primary)">{{ project.totalEstimatedHours }}h</strong>
+          
+          <!-- Analyzed but no recommendations -->
+          <div *ngIf="project.requirementsText && recommendations.length === 0" class="text-muted italic" style="font-size:0.85rem">
+            No developers found with matching skills.
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tasks List -->
-    <div class="card">
-      <div class="card-header">
-        <h3>Tasks ({{ tasks.length }})</h3>
-        <div class="flex gap-1">
-          <a routerLink="/tasks" [queryParams]="{projectId: project.id}" class="btn btn-secondary btn-sm">View All</a>
-        </div>
-      </div>
-
-      <div *ngIf="tasks.length === 0" class="empty-state" style="padding:2rem">
-        <div class="icon">✅</div>
-        <p>No tasks yet. Run AI Analysis to generate tasks automatically.</p>
-      </div>
-
-      <div class="tasks-list" *ngIf="tasks.length > 0">
-        <div class="task-row" *ngFor="let task of tasks" (click)="viewTask(task.id)">
-          <div class="task-main">
-            <div class="task-title">{{ task.title }}</div>
-            <div class="task-badges">
-              <span class="badge" [ngClass]="getCatBadge(task.category)">{{ task.category }}</span>
-              <span class="badge" [ngClass]="getPriorityBadge(task.priority)">{{ task.priority }}</span>
-              <span class="badge" [ngClass]="getStatusBadge(task.status)">{{ task.status }}</span>
+          
+          <!-- Match List -->
+          <div class="matching-devs-list" *ngIf="recommendations.length > 0">
+            <div class="matching-dev-item" *ngFor="let rec of recommendations">
+              <div class="dev-item-header">
+                <div class="dev-info-left">
+                  <span class="dev-name-link">👤 {{ rec.name }}</span>
+                  <span class="dev-role-badge badge-sm" 
+                        [ngClass]="{
+                          'badge-primary': rec.role === 'Frontend',
+                          'badge-secondary': rec.role === 'Backend',
+                          'badge-warning': rec.role === 'Full Stack',
+                          'badge-success': rec.role === 'Testing'
+                        }">
+                    {{ rec.role }}
+                  </span>
+                </div>
+                
+                <span class="dev-match-percentage" [style.color]="getScoreColor(rec.skillMatchPercentage)">
+                  {{ rec.skillMatchPercentage }}% Match
+                </span>
+              </div>
+              
+              <div class="dev-item-skills mt-05 flex-between" style="align-items: center;">
+                <div class="flex flex-wrap gap-025">
+                  <span class="skill-pill-sm" *ngFor="let s of rec.matchingSkills">{{ s }}</span>
+                </div>
+                <span class="text-muted" style="font-size: 0.725rem;">Workload: <b>{{ rec.currentWorkload || 0 }}</b></span>
+              </div>
+              
+              <div class="dev-item-action mt-05">
+                <button class="btn btn-primary btn-xs w-full" 
+                        [disabled]="project.assignedDeveloperId === rec.developerId || assigningDeveloperId === rec.developerId"
+                        (click)="assignDeveloper(rec)">
+                  <span *ngIf="project.assignedDeveloperId !== rec.developerId && assigningDeveloperId !== rec.developerId">Assign to Project</span>
+                  <span *ngIf="project.assignedDeveloperId === rec.developerId">✓ Assigned</span>
+                  <span *ngIf="assigningDeveloperId === rec.developerId" class="upload-spinner"></span>
+                </button>
+              </div>
             </div>
           </div>
-          <div class="task-meta">
-            <span>⏱️ {{ task.estimatedHours }}h</span>
-            <span *ngIf="task.assignedDeveloperName">👤 {{ task.assignedDeveloperName }}</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Panel: Document text viewing -->
+    <div class="right-panel">
+      <div class="card doc-viewer-card">
+        <div class="card-header doc-viewer-header">
+          <h3>📖 Document Content Viewer</h3>
+          <span class="badge badge-primary" *ngIf="project.requirementsText">Extracted</span>
+        </div>
+        
+        <div class="doc-viewer-body mt-1">
+          <!-- Text exists -->
+          <div *ngIf="project.requirementsText" class="doc-text-container">
+            <pre class="doc-pre-text">{{ project.requirementsText }}</pre>
+          </div>
+
+          <!-- Empty state -->
+          <div *ngIf="!project.requirementsText" class="empty-state doc-empty">
+            <div class="icon">📖</div>
+            <h4>No document content available</h4>
+            <p>Upload a PDF, DOC, DOCX, or TXT requirements document on the left to extract and view the document content here.</p>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </div>

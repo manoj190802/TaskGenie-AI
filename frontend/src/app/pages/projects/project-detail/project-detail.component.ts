@@ -1,7 +1,6 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProjectService } from '../../../services/project.service';
-import { TaskService } from '../../../services/task.service';
 
 @Component({
   selector: 'app-project-detail',
@@ -11,33 +10,27 @@ import { TaskService } from '../../../services/task.service';
 export class ProjectDetailComponent implements OnInit {
   projectId = '';
   project: any = null;
-  tasks: any[] = [];
   loading = true;
   uploading = false;
-  analyzing = false;
   selectedFile: File | null = null;
   uploadMsg = '';
-  analyzeMsg = '';
   error = '';
+
+  // Recommendations state
+  recommendations: any[] = [];
+  recommendationsLoading = false;
+  assigningDeveloperId = '';
 
   // Drag & Drop state
   isDragOver = false;
-  isDragActive = false; // page-level drag indicator
 
   readonly MAX_SIZE_MB = 10;
-  readonly ALLOWED_TYPES = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/msword',
-    'text/plain',
-  ];
   readonly ALLOWED_EXT = ['.pdf', '.docx', '.doc', '.txt'];
 
   constructor(
     private route: ActivatedRoute,
     public router: Router,
-    private projectService: ProjectService,
-    private taskService: TaskService,
+    private projectService: ProjectService
   ) {}
 
   ngOnInit(): void {
@@ -48,15 +41,71 @@ export class ProjectDetailComponent implements OnInit {
   load(): void {
     this.projectService.getById(this.projectId).subscribe({
       next: (data) => {
-        this.project = data.project;
-        this.tasks = data.tasks || [];
+        this.project = data.project || data;
         this.loading = false;
+        this.loadRecommendations();
       },
-      error: () => { this.loading = false; this.error = 'Failed to load project.'; }
+      error: () => {
+        this.loading = false;
+        this.error = 'Failed to load project.';
+      }
     });
   }
 
-  // ── File Selection via input ───────────────────────────────────────────────
+  loadRecommendations(): void {
+    if (!this.project?.requirementsText) {
+      this.recommendations = [];
+      return;
+    }
+    this.recommendationsLoading = true;
+    this.projectService.getRecommendations(this.projectId).subscribe({
+      next: (data) => {
+        this.recommendations = data;
+        this.recommendationsLoading = false;
+      },
+      error: () => {
+        this.recommendationsLoading = false;
+      }
+    });
+  }
+
+  assignDeveloper(dev: any): void {
+    if (!dev) return;
+    this.assigningDeveloperId = dev.developerId;
+    this.projectService.update(this.projectId, {
+      assignedDeveloperId: dev.developerId,
+      assignedDeveloperName: dev.name
+    }).subscribe({
+      next: (updatedProject) => {
+        this.project = updatedProject;
+        this.uploadMsg = `✅ Successfully assigned ${dev.name} to this project!`;
+        this.assigningDeveloperId = '';
+        setTimeout(() => this.uploadMsg = '', 5000);
+      },
+      error: (err) => {
+        this.uploadMsg = `❌ Assignment failed: ${err.error?.message || 'Please try again.'}`;
+        this.assigningDeveloperId = '';
+      }
+    });
+  }
+
+  unassignDeveloper(): void {
+    this.projectService.update(this.projectId, {
+      assignedDeveloperId: '',
+      assignedDeveloperName: ''
+    }).subscribe({
+      next: (updatedProject) => {
+        this.project = updatedProject;
+        this.uploadMsg = `✅ Developer unassigned.`;
+        setTimeout(() => this.uploadMsg = '', 3000);
+      },
+      error: () => {
+        this.uploadMsg = `❌ Failed to unassign developer.`;
+      }
+    });
+  }
+
+  // ── File Selection ─────────────────────────────────────────────────────────
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
@@ -68,9 +117,6 @@ export class ProjectDetailComponent implements OnInit {
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'copy';
-    }
     this.isDragOver = true;
   }
 
@@ -132,11 +178,16 @@ export class ProjectDetailComponent implements OnInit {
 
   // ── Upload ─────────────────────────────────────────────────────────────────
   uploadRequirements(): void {
-    if (!this.selectedFile) { this.uploadMsg = 'Please select a file first.'; return; }
+    if (!this.selectedFile) {
+      this.uploadMsg = 'Please select a file first.';
+      return;
+    }
     this.uploading = true;
+    this.uploadMsg = '';
+
     this.projectService.uploadRequirements(this.projectId, this.selectedFile).subscribe({
       next: (res) => {
-        this.uploadMsg = `✅ Extracted ${res.wordCount} words from ${res.fileName}`;
+        this.uploadMsg = `✅ Successfully uploaded & extracted text from ${res.fileName}`;
         this.uploading = false;
         this.selectedFile = null;
         this.load();
@@ -148,45 +199,23 @@ export class ProjectDetailComponent implements OnInit {
     });
   }
 
-  // ── AI Analysis ────────────────────────────────────────────────────────────
-  analyzeRequirements(): void {
-    this.analyzing = true;
-    this.analyzeMsg = '';
-    this.projectService.analyzeRequirements(this.projectId).subscribe({
-      next: (res) => {
-        this.analyzeMsg = `✅ ${res.message}`;
-        this.analyzing = false;
-        this.load();
-      },
-      error: (err) => {
-        this.analyzeMsg = `❌ ${err.error?.message || 'Analysis failed. Make sure the AI service is running.'}`;
-        this.analyzing = false;
-      }
-    });
-  }
-
-  viewTask(taskId: string): void {
-    this.router.navigate(['/tasks', taskId]);
-  }
-
+  // ── Status Badges ──────────────────────────────────────────────────────────
   getStatusBadge(status: string): string {
-    const m: Record<string,string> = {
-      Pending:'badge-warning', Assigned:'badge-info',
-      InProgress:'badge-primary', Completed:'badge-success', Cancelled:'badge-danger'
+    const map: Record<string, string> = {
+      Active: 'badge-success', OnHold: 'badge-warning',
+      Completed: 'badge-primary', Cancelled: 'badge-danger'
     };
-    return m[status] || 'badge-muted';
-  }
-
-  getCatBadge(cat: string): string {
-    const m: Record<string,string> = {
-      Frontend:'badge-primary', Backend:'badge-secondary',
-      'Full Stack':'badge-warning', Testing:'badge-success', DevOps:'badge-danger'
-    };
-    return m[cat] || 'badge-muted';
+    return map[status] || 'badge-muted';
   }
 
   getPriorityBadge(p: string): string {
-    const m: Record<string,string> = { High:'badge-danger', Medium:'badge-warning', Low:'badge-muted' };
+    const m: Record<string, string> = { High: 'badge-danger', Medium: 'badge-warning', Low: 'badge-muted' };
     return m[p] || 'badge-muted';
+  }
+
+  getScoreColor(score: number): string {
+    if (score >= 80) return 'var(--success)';
+    if (score >= 50) return 'var(--warning)';
+    return 'var(--accent)';
   }
 }

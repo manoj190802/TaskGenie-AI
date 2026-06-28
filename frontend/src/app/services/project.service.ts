@@ -40,8 +40,14 @@ export class ProjectService {
     return this.http.post<any>(`${this.apiUrl}/${id}/upload-requirements`, formData);
   }
 
-  analyzeRequirements(id: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/${id}/analyze`, {});
+  analyzeDocument(file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<any>(`${this.apiUrl}/analyze-document`, formData);
+  }
+
+  getRecommendations(id: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/${id}/recommendations`);
   }
 
   delete(id: string): Observable<any> {

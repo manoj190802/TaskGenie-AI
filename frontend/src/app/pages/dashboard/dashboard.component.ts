@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { ReportService } from '../../services/report.service';
-import { DashboardStats } from '../../models/models';
 
 @Component({
   selector: 'app-dashboard',
@@ -8,11 +7,9 @@ import { DashboardStats } from '../../models/models';
   styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
-  stats?: DashboardStats;
+  stats: any = null;
   workloadData: any[] = [];
-  aiStats: any = {};
   loading = true;
-
   kpiCards: any[] = [];
 
   constructor(private reportService: ReportService) {}
@@ -31,11 +28,6 @@ export class DashboardComponent implements OnInit {
       error: () => { this.loading = false; }
     });
 
-    this.reportService.getAiStats().subscribe({
-      next: (data) => this.aiStats = data,
-      error: () => {}
-    });
-
     this.reportService.getDeveloperWorkload().subscribe({
       next: (data) => this.workloadData = data.slice(0, 5),
       error: () => {}
@@ -43,78 +35,35 @@ export class DashboardComponent implements OnInit {
   }
 
   buildKpiCards(): void {
-    const s = this.stats!;
+    const s = this.stats;
+    if (!s) return;
+
     this.kpiCards = [
       {
         label: 'Total Projects',
-        value: s.totalProjects,
+        value: s.totalProjects || 0,
         icon: '🗂️',
         gradient: 'linear-gradient(90deg, #6c63ff, #5a52d5)',
-        sub: `${s.activeProjects} Active`,
+        sub: `${s.activeProjects || 0} Active`,
         color: '#6c63ff',
       },
       {
-        label: 'Pending Tasks',
-        value: s.pendingTasks,
-        icon: '⏳',
-        gradient: 'linear-gradient(90deg, #ffa94d, #fd7e14)',
-        sub: `${s.totalTasks} Total`,
-        color: '#ffa94d',
-      },
-      {
-        label: 'Assigned Tasks',
-        value: s.assignedTasks,
-        icon: '🔗',
-        gradient: 'linear-gradient(90deg, #4dabf7, #228be6)',
-        sub: `${s.inProgressTasks} In Progress`,
-        color: '#4dabf7',
-      },
-      {
-        label: 'Completed Tasks',
-        value: s.completedTasks,
-        icon: '✅',
-        gradient: 'linear-gradient(90deg, #51cf66, #40c057)',
-        sub: `${s.totalTasks > 0 ? Math.round(s.completedTasks / s.totalTasks * 100) : 0}% Done`,
-        color: '#51cf66',
-      },
-      {
         label: 'Total Developers',
-        value: s.totalDevelopers,
+        value: s.totalDevelopers || 0,
         icon: '👨‍💻',
         gradient: 'linear-gradient(90deg, #00d9a6, #00b38a)',
-        sub: `${s.availableDevelopers} Available`,
+        sub: `${s.availableDevelopers || 0} Available`,
         color: '#00d9a6',
       },
       {
-        label: 'Total Assignments',
-        value: s.totalAssignments,
-        icon: '📋',
-        gradient: 'linear-gradient(90deg, #ff6b6b, #e03131)',
-        sub: 'All Time',
-        color: '#ff6b6b',
-      },
+        label: 'Active Projects',
+        value: s.activeProjects || 0,
+        icon: '🟢',
+        gradient: 'linear-gradient(90deg, #51cf66, #40c057)',
+        sub: 'Status: Active',
+        color: '#51cf66',
+      }
     ];
-  }
-
-  getStatusBadge(status: string): string {
-    const map: Record<string, string> = {
-      'Assigned': 'badge-info',
-      'InProgress': 'badge-warning',
-      'Completed': 'badge-success',
-      'Cancelled': 'badge-danger',
-    };
-    return map[status] || 'badge-muted';
-  }
-
-  getCategoryBadge(cat: string): string {
-    const map: Record<string, string> = {
-      'Frontend': 'badge-primary',
-      'Backend': 'badge-secondary',
-      'Full Stack': 'badge-warning',
-      'Testing': 'badge-success',
-      'DevOps': 'badge-danger',
-    };
-    return map[cat] || 'badge-muted';
   }
 
   getWorkloadColor(pct: number): string {
@@ -123,6 +72,16 @@ export class DashboardComponent implements OnInit {
     return '#ff6b6b';
   }
 
-  trackByCategory(index: number, item: any) { return item.category; }
-  trackByAssignment(index: number, item: any) { return item.assignmentId; }
+  getStatusBadge(status: string): string {
+    const map: Record<string, string> = {
+      Active: 'badge-success', OnHold: 'badge-warning',
+      Completed: 'badge-primary', Cancelled: 'badge-danger'
+    };
+    return map[status] || 'badge-muted';
+  }
+
+  getPriorityBadge(p: string): string {
+    const m: Record<string, string> = { High: 'badge-danger', Medium: 'badge-warning', Low: 'badge-muted' };
+    return m[p] || 'badge-muted';
+  }
 }
